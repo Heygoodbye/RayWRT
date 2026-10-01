@@ -29,6 +29,7 @@ e7496a6f383201a1610f14169f19df31ee78cf5f1651a68620d9414f0e768f5b *root/etc/init.
 2e48376dc33e8fcc7212af581c1d027043d87271c9c7bd5fcadb315cfdd88fab *root/etc/init.d/raywrt-usage
 8ac837068fd9961cc3c6d85df096f69e5cdb8fefe8d8a3a88812642b48c136ae *root/etc/init.d/raywrt-wireguard-split
 e550d039b29997575bd03ac4c553e703d0cf178e0fea588e5c1e2295a931d244 *root/etc/uci-defaults/30_luci-theme-raywrt
+0f605cd85e9bfedecfd2994eb2629c6c92fb894005449a716cf1926d024081be *root/lib/upgrade/keep.d/raywrt
 9288fd22e1353526d7a734ce2d72c52e182ce0b81784ad2702fb89580c55a8ca *root/usr/libexec/raywrt-device-usage
 8a3ee3fa604687bf6c85e575e914a2518f75542b84ea60fdd6f039593ba5db4f *root/usr/libexec/raywrt-device-usage-control
 47c95a330127c86244e39506ebfe998a9b73ed5ecad120e9125ee9f7a57cb601 *root/usr/libexec/raywrt-diagnostics
