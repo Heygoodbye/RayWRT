@@ -4,7 +4,7 @@ LUCI_TITLE:=RayWRT theme and dashboard
 LUCI_DEPENDS:=+luci-base +luci-mod-status
 PKG_LICENSE:=Apache-2.0
 PKG_VERSION:=1.0.0
-PKG_RELEASE:=5
+PKG_RELEASE:=6
 
 define Package/luci-theme-raywrt/conffiles
 /etc/config/raywrt

@@ -109,6 +109,8 @@ check_critical_hash www/luci-static/resources/view/raywrt/tools-v3.js htdocs/luc
 check_critical_hash www/luci-static/resources/view/raywrt/passwall2.js htdocs/luci-static/resources/view/raywrt/passwall2.js jsmin
 check_critical_hash usr/libexec/raywrt-terminal root/usr/libexec/raywrt-terminal
 check_critical_hash usr/libexec/raywrt-wireguard-split root/usr/libexec/raywrt-wireguard-split
+check_critical_hash usr/share/raywrt/licenses/iran-ip-ranges-MIT.txt root/usr/share/raywrt/licenses/iran-ip-ranges-MIT.txt
+grep -Fqx 'SOURCE=https://raw.githubusercontent.com/farshidmousavii/iran-ip-ranges/main/dist/raw/ipv4.txt' "$rootfs/usr/libexec/raywrt-wireguard-split" || fail 'Iran IP database source mismatch.'
 check_critical_hash www/luci-static/resources/view/raywrt/wireguard.js htdocs/luci-static/resources/view/raywrt/wireguard.js jsmin
 check_critical_hash www/luci-static/raywrt/raywrt.css htdocs/luci-static/raywrt/raywrt.css csstidy
 grep -Fq 'ensure_wg_default_route "$wg"' "$rootfs/usr/libexec/raywrt-wireguard-split" || fail 'WireGuard default-route preparation is missing.'

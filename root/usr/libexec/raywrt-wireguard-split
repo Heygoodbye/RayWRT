@@ -13,7 +13,7 @@ DATA_DIR=/etc/raywrt
 IP_FILE=$DATA_DIR/iran-routed-ipv4.txt
 UPDATED_FILE=$DATA_DIR/iran-routed-ipv4.updated
 APPLIED_FILE=/tmp/raywrt-wg-split-applied
-SOURCE=https://raw.githubusercontent.com/KAJOOSH/iran-ip-database/main/output/iran_routed_ipv4.txt
+SOURCE=https://raw.githubusercontent.com/farshidmousavii/iran-ip-ranges/main/dist/raw/ipv4.txt
 LOCK=/var/lock/raywrt-wg-split.lock
 JOB_DIR=/tmp/raywrt-wg-split
 

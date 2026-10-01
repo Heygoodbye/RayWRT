@@ -23,3 +23,9 @@ The fresh-install UCI defaults now select `/luci-static/raywrt` as LuCI's active
 - Fixtures now cover disabled Gale radios/APs, a missing band/AP, custom settings, later disable, one-shot behavior, package index retries and Passwall state.
 
 These corrections do not add unrelated features. They require a new build and a real clean Gale boot before public release validation.
+# Iran IP database update — 2026-10-01
+
+- Iran Direct now downloads the plain IPv4 CIDR list from `farshidmousavii/iran-ip-ranges` instead of KAJOOSH.
+- Upstream schedules refreshes every six hours. RayWRT retains its existing validated download and routing lifecycle.
+- The upstream MIT copyright and permission notice is shipped at `/usr/share/raywrt/licenses/iran-ip-ranges-MIT.txt`.
+- RayWRT remains 1.0.0; package revision is 6. No private router or VPN configuration is included.

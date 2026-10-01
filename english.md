@@ -106,7 +106,7 @@ Build Windows with `companion/RayWRT.Companion.csproj` and its .NET SDK. See [An
 RayWRT source uses [Apache-2.0](LICENSE). Third-party components retain their licenses; see the xterm.js license and Android notices.
 
 - [OpenWrt](https://github.com/openwrt/openwrt) and [LuCI](https://github.com/openwrt/luci): firmware, UCI/ubus, native administration, and theme/package infrastructure.
-- [KAJOOSH/iran-ip-database](https://github.com/KAJOOSH/iran-ip-database): routed Iran IPv4 CIDR list; the project names RIPE NCC as its data source.
+- [farshidmousavii/iran-ip-ranges](https://github.com/farshidmousavii/iran-ip-ranges): Iran IPv4 CIDR list from RIPEstat, refreshed every six hours; MIT license. Its copyright and license notice are included in the firmware.
 - [Openwrt-Passwall/openwrt-passwall2](https://github.com/Openwrt-Passwall/openwrt-passwall2): Passwall 2 manager.
 - [Openwrt-Passwall/openwrt-passwall-build](https://github.com/Openwrt-Passwall/openwrt-passwall-build): Passwall APK feed/build infrastructure.
 - [saeed9400/IRAN_Passwall2](https://github.com/saeed9400/IRAN_Passwall2): Iran-routing inspiration and installer reference for compatible opkg firmware; its opkg script is not run on this APK target.
