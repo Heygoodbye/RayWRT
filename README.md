@@ -5,12 +5,12 @@
 <h3 align="center">OpenWrt Router Dashboard &amp; Companion Apps</h3>
 <p align="center">A modern LuCI interface with live traffic stats, VPN controls and Iran Direct routing.<br>Manage your router from the web panel, Windows or Android.</p>
 <p align="center">
-  <a href="https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/release-v1.0.0-29ba79" alt="Release v1.0.0"></a>
+  <a href="https://github.com/Heygoodbye/RayWRT/releases/tag/v1.1"><img src="https://img.shields.io/badge/release-v1.1-29ba79" alt="Release v1.1"></a>
   <img src="https://img.shields.io/badge/OpenWrt-25.12.5-1685c5" alt="OpenWrt 25.12.5">
   <img src="https://img.shields.io/badge/apps-Windows%20%7C%20Android-29ba79" alt="Windows and Android apps">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-697782" alt="Apache 2.0 license"></a>
 </p>
-<p align="center"><a href="https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0">📥 Download the latest release</a></p>
+<p align="center"><a href="https://github.com/Heygoodbye/RayWRT/releases/tag/v1.1">📥 Download the latest release</a></p>
 <p align="center"><a href="english.md">English</a> · <a href="FA.md">فارسی</a></p>
 
 ---
@@ -19,6 +19,10 @@
 
 RayWRT is a dark green LuCI theme, live dashboard, and router tools package, with Windows and Android companions. Created by [Heygoodbye](https://github.com/Heygoodbye), it uses real router data and keeps native OpenWrt administration accessible.
 
+## 🆕 What’s new in v1.1
+
+Fixed boot/upgrade usage totals and the Internet chart; reduced unused dashboard data requests while keeping fast refresh. Apps now verify RayWRT firmware, fix WPA2/WPA3 Wi-Fi saving, and improve connection stability. [Full English / Persian release notes](RELEASE_NOTES_v1.1.md).
+
 ## 🧪 Compatibility and status
 
 | Component | Target |
@@ -26,13 +30,13 @@ RayWRT is a dark green LuCI theme, live dashboard, and router tools package, wit
 | Router | Google WiFi AC-1304 (Gale) |
 | OpenWrt | 25.12.5 / r33051-f5dae5ece4 |
 | Target / profile | ipq40xx/chromium / google_wifi |
-| Firmware package | RayWRT 1.0.0 |
+| Firmware package | RayWRT 1.1.0 |
 | Windows companion | Windows x64, WPF / .NET |
 | Android companion | Android 8.0 or newer |
 
 ✅ Build, metadata, payload inspection, and checksum checks passed.
 
-📦 RayWRT v1 is published as a regular GitHub release. Build and image verification passed; formal clean-sysupgrade acceptance is still **pending**. App versions are independent of the firmware version.
+📦 RayWRT v1.1 is published as a regular GitHub release. Build and image verification passed; formal clean-sysupgrade acceptance is still **pending**. App versions are independent of the firmware version.
 
 ## 📊 LuCI and dashboard
 
@@ -117,22 +121,22 @@ The supplied application screenshots show Windows; Android provides the same mai
 
 ## 📥 Downloads
 
-1. [Google WiFi Gale sysupgrade — OpenWrt 25.12.5](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/raywrt-1.0.0-gale-sysupgrade.bin)
-2. [Windows x64 installer](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/RayWRT-v1-Windows-x64-Setup.exe)
-3. [Android universal APK — Android 8+](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/RayWRT-v1-Android-universal.apk)
+1. [Google WiFi Gale sysupgrade — OpenWrt 25.12.5](https://github.com/Heygoodbye/RayWRT/releases/download/v1.1/raywrt-1.1.0-gale-sysupgrade.bin)
+2. [Windows x64 installer](https://github.com/Heygoodbye/RayWRT/releases/download/v1.1/RayWRT-v1.1-Windows-x64-Setup.exe)
+3. [Android universal APK — Android 8+](https://github.com/Heygoodbye/RayWRT/releases/download/v1.1/RayWRT-v1.1-Android-universal.apk)
 
-[Release notes and SHA256 checksums](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0)
+[Release notes and SHA256 checksums](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.1)
 
 ## 🚀 Installation
 
 ### Recommended: install the GitHub Release sysupgrade — Gale only
 
-Download `raywrt-1.0.0-gale-sysupgrade.bin` from [GitHub Releases](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0) and install it through LuCI. This is the recommended installation method.
+Download `raywrt-1.1.0-gale-sysupgrade.bin` from [GitHub Releases](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.1) and install it through LuCI. This is the recommended installation method.
 
 This `.bin` is a sysupgrade image for a Gale already running OpenWrt. It is not an image for installing from Google's stock firmware. For a stock router, follow the [OpenWrt Google WiFi installation guide](https://openwrt.org/toh/google/wifi) first.
 
 1. Connect your computer to the router by Ethernet. Open LuCI at your router's LAN address, usually `http://192.168.1.1`, and sign in.
-2. Open **System → Backup / Flash Firmware**. Download a configuration backup and keep a matching recovery image available. Read the [Gale recovery guide](release/raywrt-1.0.0-gale/GALE_RECOVERY.md).
+2. Open **System → Backup / Flash Firmware**. Download a configuration backup and keep a matching recovery image available. Read the [Gale recovery guide](release/raywrt-1.1.0-gale/GALE_RECOVERY.md).
 3. Download the Gale sysupgrade from GitHub Releases. The optional checksum check below lets you compare your download with the SHA256 in the release notes.
 
 4. In LuCI's **Flash new firmware image** section, select the `.bin`, upload it, and review the compatibility check. Do not force a mismatched image. This image includes a swconfig-to-DSA compatibility notice; do not preserve incompatible settings.
@@ -145,22 +149,22 @@ This `.bin` is a sysupgrade image for a Gale already running OpenWrt. It is not 
 This checks the downloaded file; it does not install or flash firmware. Open PowerShell in the folder containing the sysupgrade and run:
 
 ```powershell
-Get-FileHash .\raywrt-1.0.0-gale-sysupgrade.bin -Algorithm SHA256
+Get-FileHash .\raywrt-1.1.0-gale-sysupgrade.bin -Algorithm SHA256
 ```
 
-Compare the result with the firmware SHA256 in the [GitHub Release notes](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0). If they differ, download the file again and do not flash it.
+Compare the result with the firmware SHA256 in the [GitHub Release notes](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.1). If they differ, download the file again and do not flash it.
 
 </details>
 
 ### Windows app
 
-1. Download `RayWRT-v1-Windows-x64-Setup.exe` and run the installer on Windows x64.
+1. Download `RayWRT-v1.1-Windows-x64-Setup.exe` and run the installer on Windows x64.
 2. Open RayWRT, enter your router's LAN address, SSH username (usually `root`), and password, then connect.
 3. Compare the displayed SSH fingerprint with your router's known fingerprint before accepting it. Your computer must be able to reach the router and SSH must be enabled.
 
 ### Android app
 
-1. Download `RayWRT-v1-Android-universal.apk` on a device running Android 8 or newer.
+1. Download `RayWRT-v1.1-Android-universal.apk` on a device running Android 8 or newer.
 2. Allow **Install unknown apps** for the browser or file manager used to open the APK, then install it. You can disable that permission afterward.
 3. Join the router's network, open RayWRT, enter its SSH address/username/password, and verify the fingerprint before connecting.
 
@@ -174,12 +178,12 @@ The apps control the router; installing an app does not flash firmware or create
 | `companion/` | Windows application source and installer |
 | `android/` | Android source, build script, tests, and library license notices |
 | `tests/` | Router-related fixture tests |
-| `release/raywrt-1.0.0-gale/` | Pinned build inputs and frozen firmware package source |
+| `release/raywrt-1.1.0-gale/` | Pinned build inputs and frozen firmware package source |
 | `docs/screenshots/` | Dashboard and application screenshots |
 
-Follow [the Gale guide](BUILD_GALE_1.0.0.md) and [portable Linux build guide](release/raywrt-1.0.0-gale/BUILD.md) in Ubuntu/WSL2. Keep pinned OpenWrt/feed revisions and profile `google_wifi`. Expected image: `raywrt-1.0.0-gale-sysupgrade.bin`. Back up before upgrading and follow [Gale recovery preparation](release/raywrt-1.0.0-gale/GALE_RECOVERY.md); verify metadata and SHA256. Fresh stock APs use `RayWRT` on both bands; custom SSIDs are preserved on upgrade.
+Follow [the Gale guide](BUILD_GALE_1.1.0.md) and [portable Linux build guide](release/raywrt-1.1.0-gale/BUILD.md) in Ubuntu/WSL2. Keep pinned OpenWrt/feed revisions and profile `google_wifi`. Expected image: `raywrt-1.1.0-gale-sysupgrade.bin`. Back up before upgrading and follow [Gale recovery preparation](release/raywrt-1.1.0-gale/GALE_RECOVERY.md); verify metadata and SHA256. Fresh stock APs use `RayWRT` on both bands; custom SSIDs are preserved on upgrade.
 
-Build Windows with `companion/RayWRT.Companion.csproj` and its .NET SDK. See [Android instructions](android/README.md) and `android/build.ps1`; the script obtains tools and creates a local signing key. Signing keys, backups, and build caches are excluded from Git. Get the sysupgrade, Windows x64 installer, and Android universal APK from [GitHub Releases](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0). SHA256 checksums are provided in the release notes.
+Build Windows with `companion/RayWRT.Companion.csproj` and its .NET SDK. See [Android instructions](android/README.md) and `android/build.ps1`; the script obtains tools and creates a local signing key. Signing keys, backups, and build caches are excluded from Git. Get the sysupgrade, Windows x64 installer, and Android universal APK from [GitHub Releases](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.1). SHA256 checksums are provided in the release notes.
 
 ## 🙏 License and credits
 

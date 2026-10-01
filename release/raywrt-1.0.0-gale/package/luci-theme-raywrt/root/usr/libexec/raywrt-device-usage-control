@@ -5,7 +5,11 @@ db=/etc/raywrt-device-usage.csv
 meta=/tmp/raywrt-device-meta.csv
 totals=/tmp/raywrt-device-usage-today.csv
 case "${1:-}" in
-  status)
+  live)
+   echo '--TODAY--'; [ ! -f "$totals" ] || cat "$totals"
+   echo '--HISTORY--'
+ ;;
+ status)
     db_bytes=0; meta_bytes=0
     [ ! -f "$db" ] || db_bytes=$(wc -c <"$db")
     [ ! -f /etc/raywrt-device-meta.csv ] || meta_bytes=$(wc -c </etc/raywrt-device-meta.csv)

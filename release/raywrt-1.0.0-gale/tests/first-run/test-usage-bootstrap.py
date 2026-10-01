@@ -24,14 +24,16 @@ with tempfile.TemporaryDirectory() as directory:
     helper.write_text(script)
     env = dict(os.environ, PATH=str(bindir) + ':' + os.environ['PATH'])
 
-    def total():
-        output = subprocess.check_output(['sh', str(helper), 'status'], env=env, text=True)
+    def total(action='status'):
+        output = subprocess.check_output(['sh', str(helper), action], env=env, text=True)
+        if action == 'summary':
+            assert len(output.splitlines()) == 1, 'Summary must not return history or diagnostics'
         return int(next(line.split('=', 1)[1] for line in output.splitlines()
                         if line.startswith('total_recorded=')))
 
-    assert total() == 0, 'No files on first boot must still return zero successfully'
+    assert total() == total('summary') == 0, 'No files on first boot must still return zero successfully'
     (root / 'raywrt-usage.state').write_text('download=1234\nupload=456\n')
-    assert total() == 1690, 'Live traffic must count before the first history save'
+    assert total() == total('summary') == 1690, 'Live traffic must count before the first history save'
     (root / 'raywrt-usage.csv').write_text(f'2020-01-01,100,200\n{date.today()},10,20\n')
-    assert total() == 1990, 'Saved current day must not double count live traffic'
+    assert total() == total('summary') == 1990, 'Saved current day must not double count live traffic'
 print('PASS: first-boot and restored-history usage totals')

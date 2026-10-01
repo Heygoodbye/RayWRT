@@ -1,0 +1,55 @@
+{
+  "admin/raywrt": {
+    "title": "Dashboard",
+    "order": 0,
+    "action": { "type": "view", "path": "raywrt/dashboard" },
+    "depends": { "acl": [ "luci-mod-status-index" ] }
+  },
+  "admin/raywrt-tools": { "title": "RayWRT Tools", "order": 5, "action": { "type": "firstchild" }, "depends": { "acl": [ "luci-theme-raywrt" ] } },
+  "admin/raywrt-tools/overview": { "title": "Overview", "order": 0, "action": { "type": "view", "path": "raywrt/tools-v3" } },
+  "admin/raywrt-tools/passwall2": {
+    "title": "Passwall 2",
+    "order": 1,
+    "action": { "type": "view", "path": "raywrt/passwall2" },
+    "depends": { "acl": [ "luci-theme-raywrt" ] }
+  },
+  "admin/raywrt-tools/wireguard": {
+    "title": "WireGuard",
+    "order": 2,
+    "action": { "type": "view", "path": "raywrt/wireguard" },
+    "depends": { "acl": [ "luci-theme-raywrt" ] }
+  },
+  "admin/raywrt-tools/terminal": {
+    "title": "Terminal",
+    "order": 3,
+    "action": { "type": "view", "path": "raywrt/terminal-v4" },
+    "depends": { "acl": [ "luci-theme-raywrt" ] }
+  },
+  "admin/raywrt-tools/settings": {
+    "title": "Settings",
+    "order": 8,
+    "action": { "type": "view", "path": "raywrt/systemtools" },
+    "depends": { "acl": [ "luci-theme-raywrt" ] }
+  },
+  "admin/raywrt-tools/usage": {
+    "title": "Data Usage",
+    "order": 5,
+    "action": { "type": "view", "path": "raywrt/usage" },
+    "depends": { "acl": [ "luci-theme-raywrt" ] }
+  },
+  "admin/raywrt-tools/packages": { "title": "Package Manager", "order": 5, "action": { "type": "view", "path": "package-manager" }, "depends": { "acl": [ "luci-app-package-manager" ] } },
+  "admin/raywrt-tools/diagnostics": { "title": "Diagnostics", "order": 6, "action": { "type": "view", "path": "raywrt/diagnostics" }, "depends": { "acl": [ "luci-theme-raywrt" ] } },
+  "admin/raywrt-tools/backup": { "title": "Backup", "order": 7, "action": { "type": "view", "path": "system/flash" } },
+  "admin/raywrt/tools": { "title": "Tools compatibility", "order": 99, "action": { "type": "alias", "path": "admin/raywrt-tools/overview" } },
+  "admin/raywrt/tools/passwall2": { "title": "Passwall compatibility", "order": 99, "action": { "type": "alias", "path": "admin/raywrt-tools/passwall2" } },
+  "admin/raywrt/tools/wireguard": { "title": "WireGuard compatibility", "order": 99, "action": { "type": "alias", "path": "admin/raywrt-tools/wireguard" } },
+  "admin/raywrt/tools/terminal": { "title": "Terminal compatibility", "order": 99, "action": { "type": "alias", "path": "admin/raywrt-tools/terminal" } },
+  "admin/raywrt/tools/system": { "title": "System compatibility", "order": 99, "action": { "type": "alias", "path": "admin/raywrt-tools/settings" } },
+  "admin/raywrt/tools/usage": { "title": "Usage compatibility", "order": 99, "action": { "type": "alias", "path": "admin/raywrt-tools/usage" } },
+  "admin/raywrt/reboot": {
+    "title": "Restart Router",
+    "order": 9,
+    "action": { "type": "view", "path": "raywrt/reboot" },
+    "depends": { "acl": [ "luci-theme-raywrt" ] }
+  }
+}

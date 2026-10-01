@@ -5,12 +5,12 @@
 <h3 align="center">داشبورد روتر و اپ‌های ویندوز و اندروید</h3>
 <p align="center" dir="rtl">یه پنل مدرن با آمار زنده مصرف اینترنت، مدیریت وی‌پی‌ان و مسیریابی مستقیم ایران.<br>روترت رو از پنل وب، ویندوز یا اندروید کنترل کن.</p>
 <p align="center">
-  <a href="https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/release-v1.0.0-29ba79" alt="Release v1.0.0"></a>
+  <a href="https://github.com/Heygoodbye/RayWRT/releases/tag/v1.1"><img src="https://img.shields.io/badge/release-v1.1-29ba79" alt="Release v1.1"></a>
   <img src="https://img.shields.io/badge/OpenWrt-25.12.5-1685c5" alt="OpenWrt 25.12.5">
   <img src="https://img.shields.io/badge/apps-Windows%20%7C%20Android-29ba79" alt="Windows and Android apps">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-697782" alt="Apache 2.0 license"></a>
 </p>
-<p align="center"><a href="https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0">📥 دانلود آخرین نسخه</a></p>
+<p align="center"><a href="https://github.com/Heygoodbye/RayWRT/releases/tag/v1.1">📥 دانلود آخرین نسخه</a></p>
 <p align="center"><a href="english.md">English</a> · <a href="FA.md">فارسی</a></p>
 
 ---
@@ -21,6 +21,10 @@
 
 <span dir="ltr">RayWRT</span> یه تم تیره و سبز برای <span dir="ltr">LuCI</span> داره، با داشبورد زنده و ابزارهایی که مدیریت روتر رو راحت‌تر می‌کنن. برنامه ویندوز و اندروید هم داره تا از گوشی یا کامپیوتر روترت رو کنترل کنی. این پروژه رو [<span dir="ltr">Heygoodbye</span>](https://github.com/Heygoodbye) ساخته و همه اطلاعاتش از خود روتر میاد؛ صفحات اصلی <span dir="ltr">OpenWrt</span> هم همچنان در دسترس هستن.
 
+## 🆕 تغییرات نسخهٔ ۱.۱
+
+مشکل آمار مصرف بعد از نصب و نمودار اینترنت رفع شد. دریافت اطلاعات اضافی کمتر شده و رفرش سریع مثل قبل است. اپ‌ها فریمور <span dir="ltr">RayWRT</span> را بررسی می‌کنند؛ ذخیرهٔ وای‌فای <span dir="ltr">WPA2/WPA3</span> و پایداری اتصال بهتر شده. [جزئیات تغییرات فارسی و انگلیسی](RELEASE_NOTES_v1.1.md)
+
 ## 🧪 روی چی تست شده؟
 
 | بخش | نسخه / دستگاه |
@@ -28,13 +32,13 @@
 | روتر | <span dir="ltr">Google WiFi AC-1304 (Gale)</span> |
 | <span dir="ltr">OpenWrt</span> | <span dir="ltr">25.12.5 / r33051-f5dae5ece4</span> |
 | تارگت و پروفایل | <span dir="ltr">ipq40xx/chromium / google_wifi</span> |
-| بسته فریمور | <span dir="ltr">RayWRT 1.0.0</span> |
+| بسته فریمور | <span dir="ltr">RayWRT 1.1.0</span> |
 | برنامه ویندوز | <span dir="ltr">Windows x64</span>، <span dir="ltr">WPF / .NET</span> |
 | برنامه اندروید | اندروید ۸ به بالا |
 
 ✅ ساخت فریمور، بررسی مشخصات ایمیج، فایل‌های داخلش و <span dir="ltr">checksum</span> با موفقیت انجام شده.
 
-📦 نسخه اول توی <span dir="ltr">GitHub</span> به‌صورت انتشار معمولی منتشر شده. ساخت و بررسی ایمیج موفق بوده؛ تست رسمی نصب تمیز هنوز مونده. شماره نسخه برنامه‌ها جدا از فریموره.
+📦 نسخه ۱.۱ توی <span dir="ltr">GitHub</span> به‌صورت انتشار معمولی منتشر شده. ساخت و بررسی ایمیج موفق بوده؛ تست رسمی نصب تمیز هنوز مونده. شماره نسخه برنامه‌ها جدا از فریموره.
 
 ## 📊 داشبورد و ظاهر <span dir="ltr">LuCI</span>
 
@@ -127,22 +131,22 @@
 
 ## 📥 دانلود
 
-1. [فریمور گوگل وای‌فای <span dir="ltr">Gale</span> — <span dir="ltr">OpenWrt 25.12.5</span>](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/raywrt-1.0.0-gale-sysupgrade.bin)
-2. [نصب‌کننده ویندوز ۶۴ بیتی](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/RayWRT-v1-Windows-x64-Setup.exe)
-3. [اپ یونیورسال اندروید — اندروید ۸ به بالا](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/RayWRT-v1-Android-universal.apk)
+1. [فریمور گوگل وای‌فای <span dir="ltr">Gale</span> — <span dir="ltr">OpenWrt 25.12.5</span>](https://github.com/Heygoodbye/RayWRT/releases/download/v1.1/raywrt-1.1.0-gale-sysupgrade.bin)
+2. [نصب‌کننده ویندوز ۶۴ بیتی](https://github.com/Heygoodbye/RayWRT/releases/download/v1.1/RayWRT-v1.1-Windows-x64-Setup.exe)
+3. [اپ یونیورسال اندروید — اندروید ۸ به بالا](https://github.com/Heygoodbye/RayWRT/releases/download/v1.1/RayWRT-v1.1-Android-universal.apk)
 
-[توضیحات انتشار و هش <span dir="ltr">SHA256</span> فایل‌ها](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0)
+[توضیحات انتشار و هش <span dir="ltr">SHA256</span> فایل‌ها](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.1)
 
 ## 🚀 چطور نصب کنم؟
 
 ### روش پیشنهادی: نصب فایل انتشار گیت‌هاب — فقط <span dir="ltr">Gale</span>
 
-فایل <code dir="ltr">raywrt-1.0.0-gale-sysupgrade.bin</code> رو از [بخش انتشار گیت‌هاب](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0) دانلود کن و از پنل روتر نصبش کن. این روش پیشنهادی نصب ماست.
+فایل <code dir="ltr">raywrt-1.1.0-gale-sysupgrade.bin</code> رو از [بخش انتشار گیت‌هاب](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.1) دانلود کن و از پنل روتر نصبش کن. این روش پیشنهادی نصب ماست.
 
 این فایل برای روتریه که از قبل <span dir="ltr">OpenWrt</span> داره؛ برای نصب مستقیم روی فریمور اصلی گوگل نیست. اگه هنوز فریمور گوگل رو داری، اول [راهنمای نصب <span dir="ltr">OpenWrt</span> روی گوگل وای‌فای](https://openwrt.org/toh/google/wifi) رو دنبال کن.
 
 1. کامپیوتر رو با کابل شبکه به روتر وصل کن. پنل رو با آدرس فعلی روتر، معمولاً <code dir="ltr">http://192.168.1.1</code>، باز کن و وارد شو.
-2. از مسیر <span dir="ltr">System → Backup / Flash Firmware</span> بکاپ تنظیمات رو دانلود کن. یه ایمیج سالم برای برگشت هم نگه دار و [راهنمای بازیابی](release/raywrt-1.0.0-gale/GALE_RECOVERY.md) رو بخون.
+2. از مسیر <span dir="ltr">System → Backup / Flash Firmware</span> بکاپ تنظیمات رو دانلود کن. یه ایمیج سالم برای برگشت هم نگه دار و [راهنمای بازیابی](release/raywrt-1.1.0-gale/GALE_RECOVERY.md) رو بخون.
 3. فایل فریمور رو از بخش انتشار گیت‌هاب بگیر. اگه خواستی، از بخش بازشونده پایین هش فایل دانلودشده رو با هش توضیحات انتشار مقایسه کن.
 4. توی بخش <span dir="ltr">Flash new firmware image</span> فایل <code dir="ltr">.bin</code> رو آپلود کن و نتیجه بررسی سازگاری رو بخون. اگه ناسازگاری دیدی، با گزینه اجبار ادامه نده. ایمیج پیام تغییر <span dir="ltr">swconfig</span> به <span dir="ltr">DSA</span> داره؛ تنظیمات ناسازگار رو نگه ندار.
 5. برای اولین نصب تمیز، تیک <span dir="ltr">Keep settings and retain the current configuration</span> رو بردار. این کار تنظیمات قبلی، رمز وای‌فای و کانفیگ‌های وی‌پی‌ان رو پاک می‌کنه. اگه از یه نسخه سازگار <span dir="ltr">RayWRT</span> ارتقا می‌دی و تنظیمات رو نگه می‌داری، پیش‌فرض‌های نصب جدید جای تنظیمات شخصی‌ات رو نمی‌گیرن.
@@ -156,12 +160,12 @@
 <div dir="ltr">
 
 ```powershell
-Get-FileHash .\raywrt-1.0.0-gale-sysupgrade.bin -Algorithm SHA256
+Get-FileHash .\raywrt-1.1.0-gale-sysupgrade.bin -Algorithm SHA256
 ```
 
 </div>
 
-نتیجه رو با هش <span dir="ltr">SHA256</span> فریمور توی [توضیحات انتشار گیت‌هاب](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0) مقایسه کن. اگه یکی نبودن، فایل رو دوباره دانلود کن و فلش نکن.
+نتیجه رو با هش <span dir="ltr">SHA256</span> فریمور توی [توضیحات انتشار گیت‌هاب](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.1) مقایسه کن. اگه یکی نبودن، فایل رو دوباره دانلود کن و فلش نکن.
 
 </details>
 
@@ -187,16 +191,16 @@ Get-FileHash .\raywrt-1.0.0-gale-sysupgrade.bin -Algorithm SHA256
 | <code dir="ltr">companion/</code> | سورس برنامه ویندوز و نصب‌کننده |
 | <code dir="ltr">android/</code> | سورس اندروید، اسکریپت ساخت، تست‌ها و مجوز کتابخانه‌ها |
 | <code dir="ltr">tests/</code> | تست‌های مربوط به روتر |
-| <code dir="ltr">release/raywrt-1.0.0-gale/</code> | ورودی‌های ثابت ساخت و سورس فریز‌شده بسته |
+| <code dir="ltr">release/raywrt-1.1.0-gale/</code> | ورودی‌های ثابت ساخت و سورس فریز‌شده بسته |
 | <code dir="ltr">docs/screenshots/</code> | اسکرین‌شات‌ها |
 
-برای ساخت فریمور روی <span dir="ltr">Ubuntu</span> یا <span dir="ltr">WSL2</span>، [راهنمای <span dir="ltr">Gale</span>](BUILD_GALE_1.0.0.md) و [راهنمای لینوکس](release/raywrt-1.0.0-gale/BUILD.md) رو دنبال کن. نسخه‌های مشخص‌شده <span dir="ltr">OpenWrt</span> و <span dir="ltr">feed</span>ها و پروفایل <code dir="ltr">google_wifi</code> رو تغییر نده. اسم خروجی <code dir="ltr">raywrt-1.0.0-gale-sysupgrade.bin</code> است.
+برای ساخت فریمور روی <span dir="ltr">Ubuntu</span> یا <span dir="ltr">WSL2</span>، [راهنمای <span dir="ltr">Gale</span>](BUILD_GALE_1.1.0.md) و [راهنمای لینوکس](release/raywrt-1.1.0-gale/BUILD.md) رو دنبال کن. نسخه‌های مشخص‌شده <span dir="ltr">OpenWrt</span> و <span dir="ltr">feed</span>ها و پروفایل <code dir="ltr">google_wifi</code> رو تغییر نده. اسم خروجی <code dir="ltr">raywrt-1.1.0-gale-sysupgrade.bin</code> است.
 
-قبل از ارتقا بکاپ بگیر، [راهنمای بازیابی <span dir="ltr">Gale</span>](release/raywrt-1.0.0-gale/GALE_RECOVERY.md) رو بخون و متادیتا و <span dir="ltr">SHA256</span> رو چک کن. در نصب جدید اسم شبکه‌های پیش‌فرض هر دو باند <code dir="ltr">RayWRT</code> می‌شه؛ اسم شبکه‌ای که خودت تنظیم کرده باشی موقع ارتقا حفظ می‌شه.
+قبل از ارتقا بکاپ بگیر، [راهنمای بازیابی <span dir="ltr">Gale</span>](release/raywrt-1.1.0-gale/GALE_RECOVERY.md) رو بخون و متادیتا و <span dir="ltr">SHA256</span> رو چک کن. در نصب جدید اسم شبکه‌های پیش‌فرض هر دو باند <code dir="ltr">RayWRT</code> می‌شه؛ اسم شبکه‌ای که خودت تنظیم کرده باشی موقع ارتقا حفظ می‌شه.
 
 ویندوز از <code dir="ltr">companion/RayWRT.Companion.csproj</code> با <span dir="ltr">SDK</span> مشخص‌شده ساخته می‌شه. برای اندروید هم [راهنما](android/README.md) و <code dir="ltr">android/build.ps1</code> رو ببین؛ اسکریپت ابزارها رو می‌گیره و یه کلید امضای محلی می‌سازه. کلیدها، بکاپ‌ها و کش ساخت وارد <span dir="ltr">Git</span> نمی‌شن.
 
-📥 فایل <span dir="ltr">sysupgrade</span>، نصب‌کننده ویندوز و <span dir="ltr">APK</span> یونیورسال اندروید توی [<span dir="ltr">GitHub Releases</span>](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0) هستن. هش <span dir="ltr">SHA256</span> هر فایل هم توی توضیحات انتشار هست.
+📥 فایل <span dir="ltr">sysupgrade</span>، نصب‌کننده ویندوز و <span dir="ltr">APK</span> یونیورسال اندروید توی [<span dir="ltr">GitHub Releases</span>](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.1) هستن. هش <span dir="ltr">SHA256</span> هر فایل هم توی توضیحات انتشار هست.
 
 ## 🙏 مجوز و تشکر از پروژه‌های دیگه
 

@@ -1,4 +1,4 @@
-<script>if (window.L) L.env.resource_version += '-raywrt-1.0.0-homefix1';</script>
+<script>if (window.L) L.env.resource_version += '-raywrt-1.0.0-homeperf2';</script>
 {% if (!blank_page): %}
   </main>
   <footer class="rw-footer">RayWRT 1.0.0 · {{ version.luciname }} {{ version.luciversion }} · {{ version.distname }} {{ version.distversion }} · Made by <a href="https://github.com/Heygoodbye/RayWRT" target="_blank" rel="noopener noreferrer">HeyGoodbye</a></footer>

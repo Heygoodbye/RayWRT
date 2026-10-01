@@ -200,7 +200,7 @@ return view.extend({
  },
  drawSpark(kind,value){this.spark??={cpu:[],memory:[]};const arr=this.spark[kind];arr.push(Math.max(0,Math.min(100,value)));if(arr.length>30)arr.shift();const svg=document.getElementById('rw-'+kind+'-spark');if(svg)svg.firstElementChild.setAttribute('points',arr.map((v,i)=>(i*100/29)+','+(32-v*.3)).join(' '));},
  async systemPoll(){this.updateSystem(await safe(info(),{}));},
- async usagePoll(){const result=await safe(fs.exec('/usr/libexec/raywrt-usage-control',['status']),{});if(!document.getElementById('rw-traffic-total-recorded'))return;const values={};String(result.stdout||'').split('\n').forEach(line=>{const at=line.indexOf('=');if(at>0)values[line.slice(0,at)]=line.slice(at+1).trim();});const total=+values.total_recorded;if(Number.isFinite(total))document.getElementById('rw-traffic-total-recorded').textContent=trafficSize(total);},
+ async usagePoll(){const result=await safe(fs.exec('/usr/libexec/raywrt-usage-control',['summary']),{});if(!document.getElementById('rw-traffic-total-recorded'))return;const values={};String(result.stdout||'').split('\n').forEach(line=>{const at=line.indexOf('=');if(at>0)values[line.slice(0,at)]=line.slice(at+1).trim();});const total=+values.total_recorded;if(Number.isFinite(total))document.getElementById('rw-traffic-total-recorded').textContent=trafficSize(total);},
  async wanPoll(){
   if(!this.wanName)return;
   const status=await safe(interfaceStatus(this.wanName),{}),up=!!status.up,device=status.l3_device||status.device;
@@ -215,7 +215,7 @@ return view.extend({
   const [data,hints,neigh4,neigh6,stations,usage]=await Promise.all([
    safe(leases(),{}),safe(hostHints(),{}),safe(fs.exec('/sbin/ip',['-f','inet','neigh','show']),{}),safe(fs.exec('/sbin/ip',['-f','inet6','neigh','show']),{}),
    Promise.all((this.wifiNetworks||[]).map(async net=>({net,peers:await safe(net.getAssocList(),[])}))),
-   safe(fs.exec('/usr/libexec/raywrt-device-usage-control',['status']),{})
+   safe(fs.exec('/usr/libexec/raywrt-device-usage-control',['live']),{})
   ]);
   const v4=Array.isArray(data)?data:(data.dhcp_leases||[]),v6=data.dhcp6_leases||[];
   const rows=new Map();

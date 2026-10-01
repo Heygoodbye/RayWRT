@@ -1,0 +1,8 @@
+CONFIG_TARGET_DEVICE_ipq40xx_chromium_DEVICE_google_wifi=y
+CONFIG_PACKAGE_luci-theme-raywrt=y
+CONFIG_PACKAGE_luci-theme-bootstrap=y
+CONFIG_PACKAGE_luci-proto-wireguard=y
+CONFIG_PACKAGE_wireguard-tools=y
+CONFIG_PACKAGE_kmod-wireguard=y
+CONFIG_PACKAGE_ip-full=y
+# CONFIG_PACKAGE_ip-tiny is not set

@@ -1,0 +1,403 @@
+#!/bin/sh
+# RayWRT-only IPv4 Iran split routing for a full-tunnel WireGuard interface.
+# Does not read or modify Passwall 2 configuration.
+set -u
+umask 077
+
+TABLE_NAME=raywrt_wg_split
+ROUTE_TABLE=52157
+RULE_PRIORITY=5215
+MARK=0x52570000
+MASK=0xffff0000
+DATA_DIR=/etc/raywrt
+IP_FILE=$DATA_DIR/iran-routed-ipv4.txt
+UPDATED_FILE=$DATA_DIR/iran-routed-ipv4.updated
+APPLIED_FILE=/tmp/raywrt-wg-split-applied
+SOURCE=https://raw.githubusercontent.com/farshidmousavii/iran-ip-ranges/main/dist/raw/ipv4.txt
+LOCK=/var/lock/raywrt-wg-split.lock
+JOB_DIR=/tmp/raywrt-wg-split
+
+setting() { uci -q get "raywrt.wireguard_split.$1" 2>/dev/null || printf '%s' "$2"; }
+valid_id() { case "$1" in ''|*[!a-zA-Z0-9_-]*) return 1;; esac; }
+valid_device() { case "$1" in ''|*[!a-zA-Z0-9_.:-]*) return 1;; esac; }
+configured_wg() { id=$1; valid_id "$id" || return 1; [ "$(uci -q get "network.$id.proto" 2>/dev/null)" = wireguard ]; }
+
+wan_status() {
+  wan=$1
+  valid_id "$wan" || return 1
+  json=$(ubus call "network.interface.$wan" status 2>/dev/null) || return 1
+  up=$(printf '%s' "$json" | jsonfilter -e '@.up' 2>/dev/null | head -n 1)
+  [ "$up" = true ] || return 1
+  wan_dev=$(printf '%s' "$json" | jsonfilter -e '@.l3_device' 2>/dev/null | head -n 1)
+  wan_gw=$(printf '%s' "$json" | jsonfilter -e '@.route[@.target="0.0.0.0"].nexthop' 2>/dev/null | head -n 1)
+  valid_device "$wan_dev" || return 1
+  case "$wan_gw" in ''|0.0.0.0) wan_gw=;; *[!0-9.]*) return 1;; esac
+  return 0
+}
+
+vpn_is_default() {
+  id=$1
+  configured_wg "$id" || return 1
+  route_dev=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++)if($i=="dev"){print $(i+1);exit}}')
+  [ "$route_dev" = "$id" ]
+}
+
+# A newly imported full-tunnel peer may allow 0.0.0.0/0 without asking
+# netifd to install its route. Change only that one flag when the user
+# explicitly enables RayWRT split routing; preserve it if already set.
+full_tunnel_peer() {
+  wanted=$1
+  matches=
+  sections=$(uci -q show network | awk -F= -v type="wireguard_$wanted" '$2==type { sub(/^network\./, "", $1); print $1 }')
+  for section in $sections; do
+    for allowed in $(uci -q get "network.$section.allowed_ips" 2>/dev/null); do
+      [ "$allowed" = 0.0.0.0/0 ] || continue
+      matches="$matches $section"
+      break
+    done
+  done
+  # Do not choose among multiple default-route peers.
+  set -- $matches
+  [ "$#" -eq 1 ] || return 1
+  printf '%s\n' "$1"
+}
+
+restore_wg_default_route() {
+  [ "${route_changed:-no}" = yes ] || [ "${interface_changed:-no}" = yes ] || return 0
+  if [ "${route_changed:-no}" = yes ]; then
+    if [ -n "$route_previous" ]; then
+      uci set "network.$route_peer.route_allowed_ips=$route_previous" || return 1
+    else
+      uci -q delete "network.$route_peer.route_allowed_ips" || return 1
+    fi
+  fi
+  [ "${interface_changed:-no}" != yes ] || uci set "network.$route_wg.disabled=$interface_previous" || return 1
+  uci commit network || return 1
+  ifdown "$route_wg" >/dev/null 2>&1 || true
+  [ "$interface_previous" = 1 ] || ifup "$route_wg" >/dev/null 2>&1 || true
+  route_changed=no
+  interface_changed=no
+}
+
+ensure_wg_default_route() {
+  route_wg=$1
+  route_changed=no
+  interface_changed=no
+  vpn_is_default "$route_wg" && return 0
+  route_peer=$(full_tunnel_peer "$route_wg") || {
+    echo "Select exactly one '$route_wg' peer with IPv4 Allowed IPs 0.0.0.0/0 before enabling Iran direct routing." >&2
+    return 1
+  }
+  route_previous=$(uci -q get "network.$route_peer.route_allowed_ips" 2>/dev/null || true)
+  interface_previous=$(uci -q get "network.$route_wg.disabled" 2>/dev/null || true)
+  if [ "$route_previous" != 1 ]; then
+    uci set "network.$route_peer.route_allowed_ips=1" || return 1
+    route_changed=yes
+  fi
+  if [ "$interface_previous" = 1 ]; then
+    uci set "network.$route_wg.disabled=0" || { uci -q revert "network.$route_peer.route_allowed_ips" 2>/dev/null || true; return 1; }
+    interface_changed=yes
+  fi
+  if [ "$route_changed" = yes ] || [ "$interface_changed" = yes ]; then
+    if ! uci commit network; then
+      [ "$route_changed" != yes ] || uci -q revert "network.$route_peer.route_allowed_ips" 2>/dev/null || true
+      [ "$interface_changed" != yes ] || uci -q revert "network.$route_wg.disabled" 2>/dev/null || true
+      echo 'Could not save the WireGuard activation settings.' >&2
+      return 1
+    fi
+  fi
+  ifdown "$route_wg" >/dev/null 2>&1 || true
+  if ! ifup "$route_wg" >/dev/null 2>&1; then
+    restore_wg_default_route || true
+    echo "WireGuard interface '$route_wg' could not start." >&2
+    return 1
+  fi
+  tries=0
+  while [ "$tries" -lt 15 ]; do
+    if vpn_is_default "$route_wg"; then
+      echo "Started '$route_wg' and verified its IPv4 default route."
+      return 0
+    fi
+    sleep 1
+    tries=$((tries + 1))
+  done
+  if restore_wg_default_route; then
+    echo "The '$route_wg' route did not become the IPv4 default. Check tunnel status and route metrics; activation changes were restored." >&2
+  else
+    echo "The '$route_wg' route did not become the IPv4 default, and activation changes could not be restored." >&2
+  fi
+  return 1
+}
+
+validate_list() {
+  input=$1 output=$2 count_file=$3
+  awk -v countfile="$count_file" '
+    function valid_cidr(line, a, n, oct, p, i) {
+      n=split(line,a,"/"); if(n>2) return 0
+      if(a[1] !~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) return 0
+      split(a[1],oct,".")
+      for(i=1;i<=4;i++) if(oct[i]+0>255 || oct[i] !~ /^[0-9]+$/) return 0
+      if(n==2) { if(a[2] !~ /^[0-9]+$/ || a[2]+0>32) return 0 }
+      return 1
+    }
+    {
+      sub(/\r$/, ""); sub(/[[:space:]]*#.*/, ""); gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+      if($0=="") next
+      if(!valid_cidr($0)) { bad=1; next }
+      split($0,a,".")
+      # Keep the upstream list limited to globally routed address space.
+      if(a[1]==0 || a[1]==10 || a[1]==127 || a[1]>=224 || (a[1]==169 && a[2]==254) || (a[1]==172 && a[2]>=16 && a[2]<=31) || (a[1]==192 && a[2]==168) || (a[1]==100 && a[2]>=64 && a[2]<=127)) next
+      print $0; count++
+    }
+    END { print count+0 > countfile; if(bad || count<100 || count>50000) exit 1 }
+  ' "$input" >"$output"
+}
+
+download_list() {
+  mkdir -p "$DATA_DIR" || return 1
+  tmp="$IP_FILE.download.$$"; normalized="$IP_FILE.normalized.$$"; countfile="$IP_FILE.count.$$"
+  rm -f "$tmp" "$normalized" "$countfile"
+  if ! wget -T 35 -O "$tmp" "$SOURCE" >/dev/null 2>&1; then rm -f "$tmp" "$normalized" "$countfile"; echo 'Could not download the Iran IPv4 list.' >&2; return 1; fi
+  bytes=$(wc -c <"$tmp" | tr -d ' ')
+  case "$bytes" in ''|*[!0-9]*) rm -f "$tmp"; echo 'Invalid list size.' >&2; return 1;; esac
+  if [ "$bytes" -lt 1024 ] || [ "$bytes" -gt 5242880 ]; then rm -f "$tmp"; echo 'The Iran IPv4 list has an unexpected size.' >&2; return 1; fi
+  if ! validate_list "$tmp" "$normalized" "$countfile"; then rm -f "$tmp" "$normalized" "$countfile"; echo 'The downloaded list failed CIDR validation.' >&2; return 1; fi
+  count=$(cat "$countfile"); rm -f "$tmp" "$countfile"
+  chmod 600 "$normalized"
+  mv -f "$normalized" "$IP_FILE" || return 1
+  date +%s >"$UPDATED_FILE"
+  chmod 600 "$UPDATED_FILE"
+  echo "Downloaded and validated $count routed Iran IPv4 ranges."
+}
+
+ensure_nft() {
+  nft list table ip "$TABLE_NAME" >/dev/null 2>&1 && return 0
+  tmp="/tmp/$TABLE_NAME.create.$$"
+  cat >"$tmp" <<EOF
+add table ip $TABLE_NAME
+add set ip $TABLE_NAME iran4 { type ipv4_addr; flags interval; auto-merge; }
+add chain ip $TABLE_NAME prerouting { type filter hook prerouting priority -150; policy accept; }
+add chain ip $TABLE_NAME output { type route hook output priority -150; policy accept; }
+add rule ip $TABLE_NAME prerouting ip daddr @iran4 meta mark set meta mark | $MARK
+add rule ip $TABLE_NAME output ip daddr @iran4 meta mark set meta mark | $MARK
+EOF
+  nft -c -f "$tmp" >/dev/null 2>&1 && nft -f "$tmp" >/dev/null 2>&1
+  rc=$?; rm -f "$tmp"; return "$rc"
+}
+
+update_set() {
+  [ -s "$IP_FILE" ] || { echo 'Iran IPv4 list is missing; update it first.' >&2; return 1; }
+  tmp="/tmp/$TABLE_NAME.elements.$$"
+  {
+    printf 'flush set ip %s iran4\n' "$TABLE_NAME"
+    printf 'add element ip %s iran4 { ' "$TABLE_NAME"
+    awk 'NF { if(sep) printf ", "; printf "%s", $0; sep=1 } END { print " }" }' "$IP_FILE"
+  } >"$tmp"
+  if ! nft -c -f "$tmp" >/dev/null 2>&1; then rm -f "$tmp"; echo 'The Iran route list is not valid for nftables.' >&2; return 1; fi
+  nft -f "$tmp" >/dev/null 2>&1
+  rc=$?; rm -f "$tmp"; return "$rc"
+}
+
+ensure_policy() {
+  wan=$1
+  wan_status "$wan" || { echo "WAN interface '$wan' is not up or has no usable device." >&2; return 1; }
+  if [ -n "$wan_gw" ]; then
+    ip -4 route replace default via "$wan_gw" dev "$wan_dev" table "$ROUTE_TABLE" || return 1
+  else
+    ip -4 route replace default dev "$wan_dev" table "$ROUTE_TABLE" || return 1
+  fi
+  if ! ip -4 rule show | grep -Fq "fwmark $MARK/$MASK lookup $ROUTE_TABLE"; then
+    ip -4 rule add priority "$RULE_PRIORITY" fwmark "$MARK/$MASK" lookup "$ROUTE_TABLE" || return 1
+  fi
+}
+
+remove_policy() {
+  while ip -4 rule del priority "$RULE_PRIORITY" fwmark "$MARK/$MASK" lookup "$ROUTE_TABLE" 2>/dev/null; do :; done
+  ip -4 route del default table "$ROUTE_TABLE" 2>/dev/null || true
+  nft delete table ip "$TABLE_NAME" 2>/dev/null || true
+  rm -f "$APPLIED_FILE"
+}
+
+apply() {
+  wg=$(setting interface '')
+  wan=$(setting wan_interface wan)
+  configured_wg "$wg" || { remove_policy; echo 'Select a configured WireGuard interface first.' >&2; return 1; }
+  # Never leave a direct-WAN policy active while its selected VPN is down.
+  if ! vpn_is_default "$wg"; then remove_policy; return 0; fi
+  wan_status "$wan" || { echo "WAN interface '$wan' is not available." >&2; return 1; }
+  set_ready=yes
+  nft list set ip "$TABLE_NAME" iran4 >/dev/null 2>&1 || set_ready=no
+  ensure_nft || { echo 'Could not create the RayWRT nftables routing rules.' >&2; return 1; }
+  ensure_policy "$wan" || return 1
+  stamp=$(cat "$UPDATED_FILE" 2>/dev/null || echo 0)
+  applied=$(cat "$APPLIED_FILE" 2>/dev/null || echo none)
+  if [ "$set_ready" != yes ] || [ "$stamp" != "$applied" ]; then
+    update_set || return 1
+    printf '%s\n' "$stamp" >"$APPLIED_FILE"
+  fi
+}
+
+status() {
+  enabled=$(setting enabled 0); wg=$(setting interface ''); wan=$(setting wan_interface wan)
+  wan_status "$wan" >/dev/null 2>&1 || { wan_dev=unavailable; wan_gw=unavailable; }
+  count=0; [ ! -f "$IP_FILE" ] || count=$(wc -l <"$IP_FILE" | tr -d ' ')
+  updated=never
+  if [ -s "$UPDATED_FILE" ]; then stamp=$(cat "$UPDATED_FILE" 2>/dev/null); case "$stamp" in ''|*[!0-9]*) ;; *) updated=$(date -d "@$stamp" '+%Y-%m-%d %H:%M UTC' 2>/dev/null || echo saved);; esac; fi
+  route_dev=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++)if($i=="dev"){print $(i+1);exit}}')
+  [ -n "$route_dev" ] || route_dev=unavailable
+  direct_dev=$(ip -4 route get 1.1.1.1 mark "$MARK" 2>/dev/null | awk '{for(i=1;i<=NF;i++)if($i=="dev"){print $(i+1);exit}}')
+  [ -n "$direct_dev" ] || direct_dev=unavailable
+  nft_state=inactive; nft list set ip "$TABLE_NAME" iran4 >/dev/null 2>&1 && nft_state=ready
+  rule_state=inactive; ip -4 rule show | grep -Fq "fwmark $MARK/$MASK lookup $ROUTE_TABLE" && rule_state=ready
+  printf 'enabled=%s\ninterface=%s\nwan_interface=%s\nwan_device=%s\nwan_gateway=%s\niran_ipv4_ranges=%s\nlist_updated=%s\nroute_device=%s\ndirect_route_device=%s\nnft_state=%s\npolicy_state=%s\n' \
+    "$enabled" "${wg:-not-selected}" "$wan" "${wan_dev:-unavailable}" "${wan_gw:-on-link}" "$count" "$updated" "$route_dev" "$direct_dev" "$nft_state" "$rule_state"
+  if [ "$route_dev" = "$wg" ] && [ "$direct_dev" = "$wan_dev" ] && [ "$nft_state" = ready ] && [ "$rule_state" = ready ]; then echo 'state=active'
+  elif [ "$enabled" = 1 ]; then echo 'state=needs-attention'
+  else echo 'state=disabled'; fi
+}
+
+wait_active() {
+  tries=0
+  while [ "$tries" -lt 15 ]; do
+    [ "$(status | sed -n 's/^state=//p')" = active ] && return 0
+    sleep 1
+    tries=$((tries + 1))
+  done
+  return 1
+}
+
+configure() {
+  wg=${2:-}; wan=${3:-wan}
+  configured_wg "$wg" || { echo 'Choose an existing WireGuard interface.' >&2; return 2; }
+  valid_id "$wan" || { echo 'Invalid WAN interface name.' >&2; return 2; }
+  [ -n "$(uci -q get "network.$wan.proto" 2>/dev/null)" ] || { echo 'Choose an existing WAN interface.' >&2; return 2; }
+  [ "$(uci -q get "network.$wan.proto" 2>/dev/null)" != wireguard ] || { echo 'The direct interface must be the physical WAN, not WireGuard.' >&2; return 2; }
+  uci set raywrt.wireguard_split=wireguard_split
+  uci set raywrt.wireguard_split.interface="$wg"
+  uci set raywrt.wireguard_split.wan_interface="$wan"
+  uci commit raywrt || return 1
+  if [ "$(setting enabled 0)" = 1 ]; then /etc/init.d/raywrt-wireguard-split restart; fi
+  echo 'WireGuard split-routing interfaces saved.'
+}
+
+enable_feature() {
+  wg=$(setting interface ''); wan=$(setting wan_interface wan)
+  configured_wg "$wg" || { echo 'Choose a configured WireGuard interface first.' >&2; return 1; }
+  if [ ! -s "$IP_FILE" ] || [ ! -s "$UPDATED_FILE" ] || [ "$(($(date +%s)-$(cat "$UPDATED_FILE" 2>/dev/null || echo 0)))" -ge 21600 ]; then download_list || return 1; fi
+  wan_status "$wan" || { echo "WAN interface '$wan' is not available." >&2; return 1; }
+  ensure_wg_default_route "$wg" || return 1
+  uci set raywrt.wireguard_split=wireguard_split
+  uci set raywrt.wireguard_split.enabled='1'
+  if ! uci commit raywrt; then
+    uci -q revert raywrt.wireguard_split.enabled 2>/dev/null || true
+    restore_wg_default_route || true
+    return 1
+  fi
+  if ! /etc/init.d/raywrt-wireguard-split enable ||
+     ! /etc/init.d/raywrt-wireguard-split start || ! wait_active; then
+    /etc/init.d/raywrt-wireguard-split disable >/dev/null 2>&1 || true
+    /etc/init.d/raywrt-wireguard-split stop >/dev/null 2>&1 || true
+    remove_policy
+    uci set raywrt.wireguard_split.enabled='0'
+    uci commit raywrt || true
+    restore_wg_default_route || echo 'Could not restore the previous WireGuard route setting.' >&2
+    echo 'Iran direct routing did not become active; previous routing settings were restored.' >&2
+    return 1
+  fi
+  echo 'Iran IPv4 direct routing is enabled for RayWRT WireGuard.'
+}
+
+disable_feature() {
+  uci set raywrt.wireguard_split.enabled='0'
+  uci commit raywrt || return 1
+  /etc/init.d/raywrt-wireguard-split disable 2>/dev/null || true
+  /etc/init.d/raywrt-wireguard-split stop 2>/dev/null || true
+  remove_policy
+  echo 'RayWRT Iran direct routing is disabled; other WireGuard and Passwall 2 settings were not changed.'
+}
+
+daemon() {
+  while :; do
+    if [ "$(setting enabled 0)" = 1 ]; then
+      if mkdir "$LOCK" 2>/dev/null; then
+        if [ ! -s "$IP_FILE" ] || [ ! -s "$UPDATED_FILE" ] || [ "$(($(date +%s)-$(cat "$UPDATED_FILE" 2>/dev/null || echo 0)))" -ge 21600 ]; then download_list >/tmp/raywrt-wg-split-update.log 2>&1 || true; fi
+        apply >/tmp/raywrt-wg-split-apply.log 2>&1 || true
+        rmdir "$LOCK" 2>/dev/null || true
+      fi
+    else
+      remove_policy
+    fi
+    sleep 60
+  done
+}
+
+worker_enable() {
+  enable_feature
+}
+
+worker_refresh() {
+  download_list || return 1
+  [ "$(setting enabled 0)" != 1 ] || apply
+}
+
+start_job() {
+  job_action=$1
+  mkdir -p "$JOB_DIR"
+  if [ -f "$JOB_DIR/pid" ] && kill -0 "$(cat "$JOB_DIR/pid" 2>/dev/null)" 2>/dev/null; then
+    echo 'A WireGuard routing task is already running.' >&2; return 1
+  fi
+  rmdir "$JOB_DIR/lock" 2>/dev/null || true
+  mkdir "$JOB_DIR/lock" 2>/dev/null || { echo 'A WireGuard routing task is already starting.' >&2; return 1; }
+  job_id="$(date +%s)-$$"
+  echo "$job_id" >"$JOB_DIR/job_id"
+  echo starting >"$JOB_DIR/state"
+  : >"$JOB_DIR/log"
+  chmod 600 "$JOB_DIR/state" "$JOB_DIR/log"
+  # LuCI file.exec waits for descendants even when a child is backgrounded.
+  # Ask procd to own the worker so the RPC can return immediately.
+  command="exec /usr/libexec/raywrt-wireguard-split worker_$job_action >>$JOB_DIR/log 2>&1"
+  payload="{\"name\":\"raywrt-wg-split-job\",\"script\":\"/bin/true\",\"instances\":{\"runner\":{\"command\":[\"/bin/sh\",\"-c\",\"$command\"]}}}"
+  if ! ubus call service add "$payload" >/dev/null 2>&1; then
+    echo failed >"$JOB_DIR/state"
+    rmdir "$JOB_DIR/lock" 2>/dev/null || true
+    echo 'Could not start the background routing task.' >&2
+    return 1
+  fi
+  printf 'started\njob_id=%s\n' "$job_id"
+}
+
+progress() {
+  state=$(cat "$JOB_DIR/state" 2>/dev/null || echo idle)
+  job_id=$(cat "$JOB_DIR/job_id" 2>/dev/null || echo none)
+  if [ "$state" = running ] && [ -f "$JOB_DIR/pid" ] && ! kill -0 "$(cat "$JOB_DIR/pid" 2>/dev/null)" 2>/dev/null; then
+    state=failed; echo failed >"$JOB_DIR/state"; rmdir "$JOB_DIR/lock" 2>/dev/null || true
+  fi
+  printf 'state=%s\njob_id=%s\n' "$state" "$job_id"
+  echo '--LOG--'
+  tail -n 30 "$JOB_DIR/log" 2>/dev/null || true
+}
+
+run_worker() {
+  echo "$$" >"$JOB_DIR/pid"
+  echo running >"$JOB_DIR/state"
+  case "$1" in worker_enable) worker_enable;; worker_refresh) worker_refresh;; *) exit 2;; esac
+  rc=$?
+  if [ "$rc" -eq 0 ]; then echo success >"$JOB_DIR/state"; else echo failed >"$JOB_DIR/state"; fi
+  rmdir "$JOB_DIR/lock" 2>/dev/null || true
+  exit "$rc"
+}
+
+action=${1:-}
+case "$action" in
+  status) status ;;
+  configure) configure "$@" ;;
+  enable) start_job enable ;;
+  disable) disable_feature ;;
+  refresh) start_job refresh ;;
+  progress) progress ;;
+  worker_enable|worker_refresh) run_worker "$action" ;;
+  apply) apply ;;
+  cleanup) remove_policy ;;
+  daemon) daemon ;;
+  *) echo 'Unsupported action' >&2; exit 2 ;;
+esac

@@ -4,6 +4,17 @@ umask 077
 db=/etc/raywrt-usage.csv
 state=/tmp/raywrt-usage.state
 case "${1:-}" in
+  summary)
+    history_input=$db
+    state_input=$state
+    [ -f "$history_input" ] || history_input=/dev/null
+    [ -f "$state_input" ] || state_input=/dev/null
+    awk -F, -v d="$(date +%F)" '
+      FILENAME==ARGV[1] {split($0,a,"=");if(a[1]=="download")cd=a[2];if(a[1]=="upload")cu=a[2];next}
+      NF==3 && $1 ~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/ {if($1!=d)sum+=$2+$3}
+      END {printf "total_recorded=%.0f\n",sum+cd+cu}
+    ' "$state_input" "$history_input"
+    ;;
   status)
     wan_device=$(ip -4 route show default 2>/dev/null | awk 'NR==1 {for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}')
     [ -n "$wan_device" ] || wan_device=$(ip -6 route show default 2>/dev/null | awk 'NR==1 {for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}')

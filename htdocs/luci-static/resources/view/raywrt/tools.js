@@ -37,7 +37,7 @@ return view.extend({
   this.active=true;
   this.installPending=true;
   this.state={};
-  const root=E('div',{class:'rw-tools','data-raywrt-build':'1.0.0-tools4'},[
+  const root=E('div',{class:'rw-tools','data-raywrt-build':'1.1.0-tools4'},[
    E('div',{class:'rw-tools-head'},E('div',{},[E('h1',{},'RayWRT Tools'),E('p',{},'Quick access to router tools and settings.')])) ,
    E('label',{class:'rw-tools-search'},[E('span',{},'⌕'),E('input',{id:'rw-tools-search',type:'search',placeholder:'Search tools…','aria-label':'Search tools'})]),
    E('section',{class:'rw-tools-section'},[E('h2',{},'Quick Access'),E('div',{id:'rw-tools-quick',class:'rw-tools-grid rw-tools-quick'},E('p',{class:'rw-tool-loading'},'Loading tools…'))]),

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+/usr/libexec/raywrt-first-run-wifi --wait || exit $?
+state=$(uci -q get raywrt.system.wifi_default 2>/dev/null || true)
+case "$state" in applied|preserved) /usr/libexec/raywrt-first-run-dns ;; esac
