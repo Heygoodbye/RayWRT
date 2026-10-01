@@ -1,10 +1,23 @@
+<p align="center">
+  <img src="htdocs/luci-static/raywrt/logo.svg" alt="RayWRT logo" width="128" height="128">
+</p>
+<h1 align="center">RayWRT</h1>
+<h3 align="center">داشبورد روتر و اپ‌های ویندوز و اندروید</h3>
+<p align="center" dir="rtl">یه پنل مدرن با آمار زنده مصرف اینترنت، مدیریت وی‌پی‌ان و مسیریابی مستقیم ایران.<br>روترت رو از پنل وب، ویندوز یا اندروید کنترل کن.</p>
+<p align="center">
+  <a href="https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/release-v1.0.0-29ba79" alt="Release v1.0.0"></a>
+  <img src="https://img.shields.io/badge/OpenWrt-25.12.5-1685c5" alt="OpenWrt 25.12.5">
+  <img src="https://img.shields.io/badge/apps-Windows%20%7C%20Android-29ba79" alt="Windows and Android apps">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-697782" alt="Apache 2.0 license"></a>
+</p>
+<p align="center"><a href="https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0">📥 دانلود آخرین نسخه</a></p>
+<p align="center"><a href="english.md">English</a> · <a href="FA.md">فارسی</a></p>
+
+---
+
 <div dir="rtl">
 
 > **🧪 <span dir="ltr">RayWRT</span> فقط روی <span dir="ltr">Google WiFi AC-1304 (Gale)</span> با <span dir="ltr">OpenWrt 25.12.5</span> تست شده. روی روترها یا نسخه‌های دیگه هنوز تستش نکردیم.**
-
-# 🟢 <span dir="ltr">RayWRT</span>
-
-[📖 <span dir="ltr">English</span>](english.md) · [<span dir="ltr">GitHub</span>](https://github.com/Heygoodbye/RayWRT)
 
 <span dir="ltr">RayWRT</span> یه تم تیره و سبز برای <span dir="ltr">LuCI</span> داره، با داشبورد زنده و ابزارهایی که مدیریت روتر رو راحت‌تر می‌کنن. برنامه ویندوز و اندروید هم داره تا از گوشی یا کامپیوتر روترت رو کنترل کنی. این پروژه رو [<span dir="ltr">Heygoodbye</span>](https://github.com/Heygoodbye) ساخته و همه اطلاعاتش از خود روتر میاد؛ صفحات اصلی <span dir="ltr">OpenWrt</span> هم همچنان در دسترس هستن.
 

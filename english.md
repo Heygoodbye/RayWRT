@@ -1,8 +1,21 @@
+<p align="center">
+  <img src="htdocs/luci-static/raywrt/logo.svg" alt="RayWRT logo" width="128" height="128">
+</p>
+<h1 align="center">RayWRT</h1>
+<h3 align="center">OpenWrt Router Dashboard &amp; Companion Apps</h3>
+<p align="center">A modern LuCI interface with live traffic stats, VPN controls and Iran Direct routing.<br>Manage your router from the web panel, Windows or Android.</p>
+<p align="center">
+  <a href="https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/release-v1.0.0-29ba79" alt="Release v1.0.0"></a>
+  <img src="https://img.shields.io/badge/OpenWrt-25.12.5-1685c5" alt="OpenWrt 25.12.5">
+  <img src="https://img.shields.io/badge/apps-Windows%20%7C%20Android-29ba79" alt="Windows and Android apps">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-697782" alt="Apache 2.0 license"></a>
+</p>
+<p align="center"><a href="https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0">📥 Download the latest release</a></p>
+<p align="center"><a href="english.md">English</a> · <a href="FA.md">فارسی</a></p>
+
+---
+
 > **🧪 Tested only on Google WiFi AC-1304 (Gale) running OpenWrt 25.12.5. Other devices and firmware versions are unverified.**
-
-# 🟢 RayWRT
-
-[🇮🇷 فارسی](FA.md) · [GitHub](https://github.com/Heygoodbye/RayWRT)
 
 RayWRT is a dark green LuCI theme, live dashboard, and router tools package, with Windows and Android companions. Created by [Heygoodbye](https://github.com/Heygoodbye), it uses real router data and keeps native OpenWrt administration accessible.
 
