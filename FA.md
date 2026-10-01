@@ -136,7 +136,7 @@
 سورس <span dir="ltr">RayWRT</span> با مجوز [<span dir="ltr">Apache-2.0</span>](LICENSE) منتشر شده. کتابخانه‌های دیگه مجوز خودشون رو دارن؛ فایل مجوز <span dir="ltr">xterm.js</span> و <span dir="ltr">notices</span> اندروید هم داخل سورس هستن.
 
 - [<span dir="ltr">OpenWrt</span>](https://github.com/openwrt/openwrt) و [<span dir="ltr">LuCI</span>](https://github.com/openwrt/luci): فریمور، <span dir="ltr">UCI/ubus</span>، مدیریت اصلی روتر و زیرساخت تم و بسته‌ها.
-- [<span dir="ltr">farshidmousavii/iran-ip-ranges</span>](https://github.com/farshidmousavii/iran-ip-ranges): لیست <span dir="ltr">IPv4</span> ایران از <span dir="ltr">RIPEstat</span>، با آپدیت هر شش ساعت و مجوز <span dir="ltr">MIT</span>؛ متن مجوز و نام سازنده داخل فریمور هست.
+- [<span dir="ltr">farshidmousavii/iran-ip-ranges</span>](https://github.com/farshidmousavii/iran-ip-ranges): لیست <span dir="ltr">IPv4</span> ایران با مجوز <span dir="ltr">MIT</span>.
 - [<span dir="ltr">Openwrt-Passwall/openwrt-passwall2</span>](https://github.com/Openwrt-Passwall/openwrt-passwall2): برنامه <span dir="ltr">Passwall 2</span>.
 - [<span dir="ltr">Openwrt-Passwall/openwrt-passwall-build</span>](https://github.com/Openwrt-Passwall/openwrt-passwall-build): ساخت و مخزن بسته‌های <span dir="ltr">APK</span>.
 - [<span dir="ltr">saeed9400/IRAN_Passwall2</span>](https://github.com/saeed9400/IRAN_Passwall2): ایده مسیریابی ایران و مرجع نصب برای فریمورهای سازگار با <span dir="ltr">opkg</span>؛ اسکریپت <span dir="ltr">opkg</span> روی نسخه <span dir="ltr">APK</span> فعلی اجرا نمی‌شه.

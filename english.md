@@ -6,6 +6,14 @@
 
 RayWRT is a dark green LuCI theme, live dashboard, and router tools package, with Windows and Android companions. Created by [Heygoodbye](https://github.com/Heygoodbye), it uses real router data and keeps native OpenWrt administration accessible.
 
+## 📥 Downloads
+
+1. [Google WiFi Gale sysupgrade — OpenWrt 25.12.5](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/raywrt-1.0.0-gale-sysupgrade.bin)
+2. [Windows x64 installer](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/RayWRT-v1-Windows-x64-Setup.exe)
+3. [Android universal APK — Android 8+](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/RayWRT-v1-Android-universal.apk)
+
+[Release notes and SHA256 checksums](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0)
+
 ## 🧪 Compatibility and status
 
 | Component | Target |
@@ -35,7 +43,7 @@ RayWRT is a dark green LuCI theme, live dashboard, and router tools package, wit
 
 Device identification uses DHCP, neighbour information, and Wi-Fi associations. Unknown devices remain unknown. Temperature appears only with a usable CPU/SoC sensor; Gale has no verified CPU reading. WAN Connected describes interface state, not proven Internet reachability.
 
-## 🟢 RayWRT Tools
+## 🧰 RayWRT Tools
 
 - Quick Access and grouped VPN, Network, System, Diagnostics, and Advanced tools.
 - Separate installed, configured, and running states.
@@ -61,7 +69,7 @@ These are recorded statistics rather than ISP billing figures. WAN and device to
 
 ## 🇮🇷 WireGuard Iran Direct routing
 
-Iranian **IPv4** ranges use the selected regular WAN; other IPv4 traffic follows the selected WireGuard default route. Choose the tunnel and WAN separately, update/validate the Iran list, and view range count, last update, and route state. A dedicated nftables table and policy routing keep this feature independent of Passwall 2. The list refreshes periodically while enabled.
+Iranian **IPv4** ranges use the selected regular WAN; other IPv4 traffic follows the selected WireGuard default route. Choose the tunnel and WAN separately, update/validate the Iran list, and view range count, last update, and route state. A dedicated nftables table and policy routing keep this feature independent of Passwall 2. The list is validated before use and refreshes periodically while enabled. Upstream list updates are scheduled every six hours. Range counts can change as adjacent ranges are merged or the upstream data changes.
 
 Enable activates the selected full-tunnel interface and prepares its default route if needed, restoring its activation changes when the route check fails. Disable, or deletion of the selected interface, cleans up RayWRT policy. IPv6 is unchanged. A valid peer allowing `0.0.0.0/0`, reachable endpoint, and suitable firewall are required. Route/interface state does not verify a recent handshake. No personal VPN keys, endpoints, or Meli configuration are bundled.
 
@@ -73,7 +81,16 @@ The embedded root terminal uses ttyd and xterm.js inside LuCI, with Connect, Dis
 
 ## 🎮 Gaming diagnostics
 
-Concurrent router-side ping tests cover the OpenWrt website and EU endpoints for World of Warcraft, League of Legends EUW/EUNE, Escape from Tarkov, World of Tanks, Fortnite Germany/France/UK, and PUBG. Results show latency, loss, replies, and means/ranges for multiple endpoints. Previous results remain while Testing is displayed. Game addresses are hidden behind server labels. ICMP results do not guarantee in-game latency.
+Tests run concurrently from the router to the OpenWrt website and EU servers for:
+
+- World of Warcraft
+- League of Legends EUW / EUNE
+- Escape from Tarkov
+- World of Tanks
+- Fortnite in Germany, France, and the UK
+- PUBG
+
+Results show ping, packet loss, reply counts, and the average and range across each game's servers. Previous results stay visible while Testing appears beside a new run. Raw game IP addresses are hidden behind server names or numbers. These are ICMP tests; in-game latency may differ.
 
 ![Gaming diagnostics](docs/screenshots/gaming-diagnostics.png)
 
@@ -95,7 +112,14 @@ The supplied application screenshots show Windows; Android provides the same mai
 
 ## 🔧 Source and builds
 
-`htdocs/`, `ucode/`, `root/`, and `Makefile` contain LuCI assets, templates, helpers, services, ACLs, and package metadata. `companion/` contains Windows source/installer; `android/` contains Android source/build/tests/notices. `tests/` contains router fixtures; `release/raywrt-1.0.0-gale/` contains pinned build inputs and the frozen package; `docs/screenshots/` contains supplied images.
+| Path | Contents |
+| --- | --- |
+| `htdocs/`, `ucode/`, `root/`, `Makefile` | LuCI interface, templates, backend helpers, services, ACLs, and package metadata |
+| `companion/` | Windows application source and installer |
+| `android/` | Android source, build script, tests, and library license notices |
+| `tests/` | Router-related fixture tests |
+| `release/raywrt-1.0.0-gale/` | Pinned build inputs and frozen firmware package source |
+| `docs/screenshots/` | Dashboard and application screenshots |
 
 Follow [the Gale guide](BUILD_GALE_1.0.0.md) and [portable Linux build guide](release/raywrt-1.0.0-gale/BUILD.md) in Ubuntu/WSL2. Keep pinned OpenWrt/feed revisions and profile `google_wifi`. Expected image: `raywrt-1.0.0-gale-sysupgrade.bin`. Back up before upgrading and follow [Gale recovery preparation](release/raywrt-1.0.0-gale/GALE_RECOVERY.md); verify metadata and SHA256. Fresh stock APs use `RayWRT` on both bands; custom SSIDs are preserved on upgrade.
 
@@ -106,7 +130,7 @@ Build Windows with `companion/RayWRT.Companion.csproj` and its .NET SDK. See [An
 RayWRT source uses [Apache-2.0](LICENSE). Third-party components retain their licenses; see the xterm.js license and Android notices.
 
 - [OpenWrt](https://github.com/openwrt/openwrt) and [LuCI](https://github.com/openwrt/luci): firmware, UCI/ubus, native administration, and theme/package infrastructure.
-- [farshidmousavii/iran-ip-ranges](https://github.com/farshidmousavii/iran-ip-ranges): Iran IPv4 CIDR list from RIPEstat, refreshed every six hours; MIT license. Its copyright and license notice are included in the firmware.
+- [farshidmousavii/iran-ip-ranges](https://github.com/farshidmousavii/iran-ip-ranges): Iran IPv4 list (MIT).
 - [Openwrt-Passwall/openwrt-passwall2](https://github.com/Openwrt-Passwall/openwrt-passwall2): Passwall 2 manager.
 - [Openwrt-Passwall/openwrt-passwall-build](https://github.com/Openwrt-Passwall/openwrt-passwall-build): Passwall APK feed/build infrastructure.
 - [saeed9400/IRAN_Passwall2](https://github.com/saeed9400/IRAN_Passwall2): Iran-routing inspiration and installer reference for compatible opkg firmware; its opkg script is not run on this APK target.
