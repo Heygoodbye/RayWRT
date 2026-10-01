@@ -28,16 +28,22 @@ function trafficSize(n) {
 }
 function rate(n) { if (!Number.isFinite(n)) return '—'; return n >= 1000000 ? (n/1000000).toFixed(1)+' Mbps' : (n/1000).toFixed(1)+' Kbps'; }
 function macKey(value) { return String(value||'').replace(/[^0-9a-f]/gi,'').toUpperCase(); }
+function svgNode(tag,attrs,children){
+ const node=document.createElementNS('http://www.w3.org/2000/svg',tag);
+ for(const [name,value] of Object.entries(attrs||{}))node.setAttribute(name,String(value));
+ for(const child of (Array.isArray(children)?children:children?[children]:[]))node.appendChild(child);
+ return node;
+}
 function graph(a,b) {
- const svg = E('svg',{viewBox:'0 0 400 90',preserveAspectRatio:'none',class:'rw-graph','aria-label':'Recent download and upload speed'});
- [18,40,62,84].forEach(y=>svg.appendChild(E('line',{x1:'0',y1:String(y),x2:'400',y2:String(y),class:'rw-graph-grid'})));
+ const svg = svgNode('svg',{viewBox:'0 0 400 90',preserveAspectRatio:'none',class:'rw-graph','aria-label':'Recent download and upload speed'});
+ [18,40,62,84].forEach(y=>svg.appendChild(svgNode('line',{x1:'0',y1:String(y),x2:'400',y2:String(y),class:'rw-graph-grid'})));
  [a,b].forEach((series,i)=>{
-  svg.appendChild(E('polygon',{class:i?'rw-graph-upload-area':'rw-graph-download-area',points:'',fill:i?'#ba8af3':'#57d99a','fill-opacity':'0.12'}));
-  svg.appendChild(E('polyline',{class:i?'rw-graph-upload':'rw-graph-download',points:'',fill:'none',stroke:i?'#ba8af3':'#57d99a','stroke-width':'2.5','stroke-linecap':'round','stroke-linejoin':'round'}));
+  svg.appendChild(svgNode('polygon',{class:i?'rw-graph-upload-area':'rw-graph-download-area',points:'',fill:i?'#ba8af3':'#57d99a','fill-opacity':'0.12'}));
+  svg.appendChild(svgNode('polyline',{class:i?'rw-graph-upload':'rw-graph-download',points:'',fill:'none',stroke:i?'#ba8af3':'#57d99a','stroke-width':'2.5','stroke-linecap':'round','stroke-linejoin':'round'}));
  });
  return svg;
 }
-function sparkline(id,color){return E('svg',{id,viewBox:'0 0 100 34',preserveAspectRatio:'none',class:'rw-spark','aria-hidden':'true'},E('polyline',{points:'',fill:'none',stroke:color,'stroke-width':'2'}));}
+function sparkline(id,color){return svgNode('svg',{id,viewBox:'0 0 100 34',preserveAspectRatio:'none',class:'rw-spark','aria-hidden':'true'},svgNode('polyline',{points:'',fill:'none',stroke:color,'stroke-width':'2'}));}
 
 return view.extend({
  addFooter(){},

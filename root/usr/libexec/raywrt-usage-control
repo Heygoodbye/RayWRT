@@ -39,9 +39,13 @@ case "${1:-}" in
       "$logical_wan" "${wan_device:-unavailable}" "$underlying_device" "${current_rx:-unavailable}" "${current_tx:-unavailable}" \
       "$(sed -n 's/^previous_rx=//p' "$state" 2>/dev/null | head -n 1)" \
       "$(sed -n 's/^previous_tx=//p' "$state" 2>/dev/null | head -n 1)" "$(date '+%F %T %Z')"
-    total_recorded=$(awk -F, -v d="$(date +%F)" -v cd="$(sed -n 's/^download=//p' "$state" 2>/dev/null | head -n 1)" -v cu="$(sed -n 's/^upload=//p' "$state" 2>/dev/null | head -n 1)" 'NF==3 && $1 ~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/ { if($1==d) {sum+=cd+cu;seen=1} else sum+=$2+$3 } END {if(!seen)sum+=cd+cu;printf "%.0f",sum}' "$db" 2>/dev/null)
+    history_input=$db
+    [ -f "$history_input" ] || history_input=/dev/null
+    total_recorded=$(awk -F, -v d="$(date +%F)" -v cd="$(sed -n 's/^download=//p' "$state" 2>/dev/null | head -n 1)" -v cu="$(sed -n 's/^upload=//p' "$state" 2>/dev/null | head -n 1)" 'NF==3 && $1 ~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/ { if($1==d) {sum+=cd+cu;seen=1} else sum+=$2+$3 } END {if(!seen)sum+=cd+cu;printf "%.0f",sum}' "$history_input" 2>/dev/null)
     printf 'total_recorded=%s\n' "${total_recorded:-0}"
-    device_today_total=$(awk -F, '{s+=$2+$3} END{printf "%.0f",s}' /tmp/raywrt-device-usage-today.csv 2>/dev/null)
+    device_input=/tmp/raywrt-device-usage-today.csv
+    [ -f "$device_input" ] || device_input=/dev/null
+    device_today_total=$(awk -F, '{s+=$2+$3} END{printf "%.0f",s}' "$device_input" 2>/dev/null)
     current_today_total=$(awk -v d="$(sed -n 's/^download=//p' "$state" 2>/dev/null | head -n 1)" -v u="$(sed -n 's/^upload=//p' "$state" 2>/dev/null | head -n 1)" 'BEGIN{printf "%.0f",d+u}')
     anomaly=none
     if [ "${device_today_total:-0}" -gt 100000000 ] 2>/dev/null && [ "${device_today_total:-0}" -gt "$((current_today_total * 2))" ] 2>/dev/null; then anomaly=device_total_exceeds_wan; fi

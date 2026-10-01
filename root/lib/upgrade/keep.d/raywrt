@@ -1,2 +1,5 @@
 /etc/raywrt/iran-routed-ipv4.txt
 /etc/raywrt/iran-routed-ipv4.updated
+/etc/raywrt-usage.csv
+/etc/raywrt-device-usage.csv
+/etc/raywrt-device-meta.csv

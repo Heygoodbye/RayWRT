@@ -57,9 +57,9 @@ button,.btn,.cbi-button,a.btn,#tabmenu .tabs a,.cbi-tabmenu>li>a{transform:none!
 .rw-dashboard .rw-internet{background:radial-gradient(ellipse at 0 0,rgba(52,211,141,.105),transparent 55%),radial-gradient(ellipse at 100% 100%,rgba(186,138,243,.06),transparent 48%),linear-gradient(145deg,#18252b,#151f26 72%,#19242b);border-color:rgba(87,217,154,.23);box-shadow:0 18px 38px rgba(0,0,0,.34),0 0 28px rgba(52,211,141,.055),inset 0 1px 0 rgba(224,255,240,.08)}
 .rw-dashboard .rw-graph{border:1px solid rgba(111,148,148,.15);border-radius:11px;background:linear-gradient(180deg,rgba(8,18,22,.34),rgba(14,28,31,.16));filter:drop-shadow(0 5px 12px rgba(0,0,0,.15))}
 .rw-dashboard .rw-graph-grid{stroke:rgba(184,208,211,.23);stroke-dasharray:3 5}
-.rw-dashboard .rw-graph-download{filter:drop-shadow(0 0 5px rgba(87,217,154,.7))}
-.rw-dashboard .rw-graph-upload{filter:drop-shadow(0 0 5px rgba(186,138,243,.7))}
-.rw-dashboard .rw-graph-download-area,.rw-dashboard .rw-graph-upload-area{opacity:.75}
+.rw-dashboard .rw-graph-download{filter:drop-shadow(0 0 5px rgba(87,217,154,.35))}
+.rw-dashboard .rw-graph-upload{filter:drop-shadow(0 0 5px rgba(186,138,243,.35))}
+.rw-dashboard .rw-graph-download-area,.rw-dashboard .rw-graph-upload-area{opacity:.6}
 
 /* Keep the global form-control skin from adding a second box inside search. */
 .rw-search-wrap{flex:0 1 480px;width:min(480px,58vw);min-width:0;box-sizing:border-box}
