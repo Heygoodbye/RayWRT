@@ -21,7 +21,7 @@
 
 ✅ ساخت فریمور، بررسی مشخصات ایمیج، فایل‌های داخلش و <span dir="ltr">checksum</span> با موفقیت انجام شده.
 
-⏳ تست نهایی نصب تمیز با <span dir="ltr">sysupgrade</span> هنوز مونده؛ برای همین نسخه فعلی **پیش‌انتشار**ه و هنوز کامل تأییدش نکردیم. شماره نسخه برنامه‌های ویندوز و اندروید هم جدا از نسخه فریموره.
+📦 نسخه اول توی <span dir="ltr">GitHub</span> به‌صورت انتشار معمولی منتشر شده. ساخت و بررسی ایمیج موفق بوده؛ تست رسمی نصب تمیز هنوز مونده. شماره نسخه برنامه‌ها جدا از فریموره.
 
 ## 📊 داشبورد و ظاهر <span dir="ltr">LuCI</span>
 
@@ -129,7 +129,7 @@
 
 ویندوز از <code dir="ltr">companion/RayWRT.Companion.csproj</code> با <span dir="ltr">SDK</span> مشخص‌شده ساخته می‌شه. برای اندروید هم [راهنما](android/README.md) و <code dir="ltr">android/build.ps1</code> رو ببین؛ اسکریپت ابزارها رو می‌گیره و یه کلید امضای محلی می‌سازه. کلیدها، بکاپ‌ها و کش ساخت وارد <span dir="ltr">Git</span> نمی‌شن.
 
-📥 فایل <span dir="ltr">sysupgrade</span>، برنامه <span dir="ltr">portable</span> و نصب‌کننده ویندوز و <span dir="ltr">APK</span> اندروید توی [<span dir="ltr">GitHub Releases</span>](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0) هستن<span dir="ltr">. checksum</span> هم کنار فایل‌ها قرار داره.
+📥 فایل <span dir="ltr">sysupgrade</span>، نصب‌کننده ویندوز و <span dir="ltr">APK</span> یونیورسال اندروید توی [<span dir="ltr">GitHub Releases</span>](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0) هستن. هش <span dir="ltr">SHA256</span> هر فایل هم توی توضیحات انتشار هست.
 
 ## 🙏 مجوز و تشکر از پروژه‌های دیگه
 

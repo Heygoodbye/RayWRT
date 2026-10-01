@@ -19,7 +19,7 @@ RayWRT is a dark green LuCI theme, live dashboard, and router tools package, wit
 
 ✅ Build, metadata, payload inspection, and checksum checks passed.
 
-⏳ Clean-sysupgrade acceptance is still **pending**, so the firmware remains a **prerelease**. App versions are independent of the firmware version.
+📦 RayWRT v1 is published as a regular GitHub release. Build and image verification passed; formal clean-sysupgrade acceptance is still **pending**. App versions are independent of the firmware version.
 
 ## 📊 LuCI and dashboard
 
@@ -99,7 +99,7 @@ The supplied application screenshots show Windows; Android provides the same mai
 
 Follow [the Gale guide](BUILD_GALE_1.0.0.md) and [portable Linux build guide](release/raywrt-1.0.0-gale/BUILD.md) in Ubuntu/WSL2. Keep pinned OpenWrt/feed revisions and profile `google_wifi`. Expected image: `raywrt-1.0.0-gale-sysupgrade.bin`. Back up before upgrading and follow [Gale recovery preparation](release/raywrt-1.0.0-gale/GALE_RECOVERY.md); verify metadata and SHA256. Fresh stock APs use `RayWRT` on both bands; custom SSIDs are preserved on upgrade.
 
-Build Windows with `companion/RayWRT.Companion.csproj` and its .NET SDK. See [Android instructions](android/README.md) and `android/build.ps1`; the script obtains tools and creates a local signing key. Signing keys, backups, and build caches are excluded from Git. Get the sysupgrade, Windows portable EXE/ZIP or installer, and Android APK from [GitHub Releases](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0). Checksums are provided alongside downloads.
+Build Windows with `companion/RayWRT.Companion.csproj` and its .NET SDK. See [Android instructions](android/README.md) and `android/build.ps1`; the script obtains tools and creates a local signing key. Signing keys, backups, and build caches are excluded from Git. Get the sysupgrade, Windows x64 installer, and Android universal APK from [GitHub Releases](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0). SHA256 checksums are provided in the release notes.
 
 ## 🙏 License and credits
 
