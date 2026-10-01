@@ -1,12 +1,12 @@
-> **Tested only on Google WiFi AC-1304 (Gale) running OpenWrt 25.12.5. Other devices and firmware versions are unverified.**
+> **🧪 Tested only on Google WiFi AC-1304 (Gale) running OpenWrt 25.12.5. Other devices and firmware versions are unverified.**
 
-# RayWRT
+# 🟢 RayWRT
 
 Modern LuCI dashboard, router tools, and Windows / Android companion applications by [Heygoodbye](https://github.com/Heygoodbye).
 
-[English documentation](english.md) · [راهنمای فارسی](FA.md)
+[📖 English documentation](english.md) · [🇮🇷 راهنمای فارسی](FA.md)
 
-[Downloads: firmware, Windows, Android](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0)
+[📥 Downloads: firmware, Windows, Android](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0)
 
 ![RayWRT dashboard](docs/screenshots/dashboard.png)
 
