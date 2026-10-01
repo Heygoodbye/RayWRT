@@ -13,4 +13,4 @@
 - SHA256: `3fba84f17103484fbb43a06933fcc75110892ce5bc3c1925745e4cacf12ab7fc`
 - Windows copy checksum: PASS.
 - No router changes or flash; VM remains running.
-- Clean-sysupgrade validation remains pending. Existing GitHub release assets have not been replaced.
+- Clean-sysupgrade validation remains pending. The GitHub v1.0.0 release now includes this firmware plus the supplied Windows installer and universal Android APK; all uploaded sizes and SHA256 digests match local files. The prerelease flag was removed at the user's request.
