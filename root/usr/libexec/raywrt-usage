@@ -1,0 +1,81 @@
+#!/bin/sh
+# Small WAN counter sampler. Only daily totals are written to overlay.
+set -u
+umask 077
+db=/etc/raywrt-usage.csv
+state=/tmp/raywrt-usage.state
+config=raywrt
+day=$(date +%F)
+down=0
+up=0
+previous_rx=
+previous_tx=
+previous_dev=
+last_save=$(date +%s)
+
+setting() { uci -q get "$config.usage.$1" 2>/dev/null || echo "$2"; }
+valid_number() { case "$1" in ''|*[!0-9]*) return 1;; *) return 0;; esac; }
+load_day() {
+  [ -f "$db" ] || return 0
+  line=$(awk -F, -v d="$day" '$1==d {print $2 " " $3}' "$db" | tail -n 1)
+  set -- $line
+  if valid_number "${1:-}" && valid_number "${2:-}"; then down=$1; up=$2; fi
+}
+write_state() {
+  now=$(date +%s)
+  next=$((last_save + $(setting save_minutes 30) * 60))
+  printf 'date=%s\ndownload=%s\nupload=%s\nlast_saved=%s\nnext_save=%s\ndevice=%s\nprevious_rx=%s\nprevious_tx=%s\n' \
+    "$day" "$down" "$up" "$last_save" "$next" "$previous_dev" "$previous_rx" "$previous_tx" >"$state.tmp"
+  mv -f "$state.tmp" "$state"
+}
+flush() {
+  retention=$(setting retention 30)
+  case "$retention" in 1|3|7|14|30|60|90|180|365|never) ;; *) retention=30;; esac
+  { [ -f "$db" ] && awk -F, -v d="$day" '$1!=d && $1 ~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/ {print $1 "," $2 "," $3}' "$db"; printf '%s,%s,%s\n' "$day" "$down" "$up"; } | sort -t, -k1,1 -u >"$db.tmp"
+  if [ "$retention" != never ]; then
+    tail -n "$retention" "$db.tmp" >"$db.trim"
+    mv -f "$db.trim" "$db.tmp"
+  fi
+  chmod 600 "$db.tmp"
+  mv -f "$db.tmp" "$db"
+  sync "$db" 2>/dev/null || sync
+  last_save=$(date +%s)
+  write_state
+}
+stop() { flush; exit 0; }
+trap stop TERM INT
+load_day
+write_state
+while :; do
+  enabled=$(setting enabled 1)
+  if [ "$enabled" = 1 ]; then
+    today=$(date +%F)
+    if [ "$today" != "$day" ]; then flush; day=$today; down=0; up=0; load_day; previous_rx=; previous_tx=; fi
+    dev=$(ip -4 route show default 2>/dev/null | awk 'NR==1 {for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}')
+    [ -n "$dev" ] || dev=$(ip -6 route show default 2>/dev/null | awk 'NR==1 {for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}')
+    if [ -n "$dev" ] && [ -r "/sys/class/net/$dev/statistics/rx_bytes" ]; then
+      rx=$(cat "/sys/class/net/$dev/statistics/rx_bytes")
+      tx=$(cat "/sys/class/net/$dev/statistics/tx_bytes")
+      if valid_number "$rx" && valid_number "$tx"; then
+        if [ "$dev" = "$previous_dev" ] && valid_number "$previous_rx" && valid_number "$previous_tx" && [ "$rx" -ge "$previous_rx" ] && [ "$tx" -ge "$previous_tx" ]; then
+          delta_rx=$((rx - previous_rx)); delta_tx=$((tx - previous_tx))
+          # Gale's WAN is at most gigabit; reject impossible jumps after device recreation.
+          if [ "$delta_rx" -le 8000000000 ] && [ "$delta_tx" -le 8000000000 ]; then
+            down=$((down + delta_rx)); up=$((up + delta_tx))
+          else
+            logger -t raywrt-usage "Ignored implausible counter jump on $dev (rx=$delta_rx tx=$delta_tx)"
+          fi
+        fi
+        previous_dev=$dev; previous_rx=$rx; previous_tx=$tx
+      fi
+    else previous_dev=; previous_rx=; previous_tx=; fi
+    write_state
+    now=$(date +%s)
+    interval=$(setting save_minutes 30)
+    case "$interval" in 15|30|60) ;; *) interval=30;; esac
+    [ "$now" -lt "$((last_save + interval * 60))" ] || flush
+  else
+    previous_dev=; previous_rx=; previous_tx=
+  fi
+  sleep 30 & wait $!
+done

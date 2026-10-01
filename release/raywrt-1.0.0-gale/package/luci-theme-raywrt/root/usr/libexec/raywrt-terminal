@@ -1,0 +1,72 @@
+#!/bin/sh
+# Fixed-action, short-lived, single-client terminal launcher.
+set -eu
+umask 077
+dir=/tmp/raywrt-terminal
+mkdir -p "$dir"
+chmod 700 "$dir"
+running() {
+  [ -f "$dir/pid" ] || return 1
+  pid=$(cat "$dir/pid")
+  [ -r "/proc/$pid/cmdline" ] || return 1
+  tr '\000' ' ' <"/proc/$pid/cmdline" | grep -Fq '/usr/bin/ttyd'
+}
+listener_ready() {
+  netstat -lnt 2>/dev/null | grep -q ':7682 '
+}
+valid_device() { case "$1" in ''|*[!a-zA-Z0-9_.:-]*) return 1;; esac; }
+case "${1:-}" in
+  status)
+    if command -v ttyd >/dev/null 2>&1; then echo backend=installed; else echo backend=missing; fi
+    if running; then echo session=running; else echo session=idle; fi
+    ;;
+  start)
+    mkdir "$dir/start.lock" 2>/dev/null || { echo 'A terminal session is already starting.' >&2; exit 1; }
+    trap 'rmdir "$dir/start.lock" 2>/dev/null || true' EXIT
+    command -v ttyd >/dev/null 2>&1 || { echo 'Install the ttyd backend first.' >&2; exit 1; }
+    ubus call service delete '{"name":"raywrt-terminal"}' >/dev/null 2>&1 || true
+    rm -f "$dir/pid"
+    if netstat -lnt 2>/dev/null | grep -q ':7682 '; then echo 'Terminal port is occupied.' >&2; exit 1; fi
+    device=$(uci -q get network.lan.device || true)
+    valid_device "$device" && [ -d "/sys/class/net/$device" ] || { echo 'LAN device unavailable.' >&2; exit 1; }
+    token=$(head -c 24 /dev/urandom | hexdump -v -e '1/1 "%02x"')
+    [ ${#token} -eq 48 ] || { echo 'Could not create session token.' >&2; exit 1; }
+    payload="{\"name\":\"raywrt-terminal\",\"script\":\"/bin/true\",\"instances\":{\"session\":{\"command\":[\"/usr/libexec/raywrt-terminal\",\"serve\",\"$token\",\"$device\"]},\"watchdog\":{\"command\":[\"/usr/libexec/raywrt-terminal\",\"watchdog\"]}}}"
+    ubus call service add "$payload" >/dev/null 2>&1 || { echo 'Could not start the protected terminal session.' >&2; exit 1; }
+    tries=0
+    while [ "$tries" -lt 5 ]; do
+      if running && listener_ready; then break; fi
+      tries=$((tries + 1))
+      sleep 1
+    done
+    if ! running || ! listener_ready; then
+      ubus call service delete '{"name":"raywrt-terminal"}' >/dev/null 2>&1 || true
+      rm -f "$dir/pid"
+      echo 'Terminal backend failed to start.' >&2
+      exit 1
+    fi
+    printf 'port=7682\ntoken=%s\n' "$token"
+    ;;
+  stop)
+    ubus call service delete '{"name":"raywrt-terminal"}' >/dev/null 2>&1 || true
+    rm -f "$dir/pid"
+    echo stopped
+    ;;
+  serve)
+    token=${2:-}; device=${3:-}
+    case "$token" in ''|*[!a-f0-9]*) exit 2;; esac
+    [ "${#token}" -eq 48 ] && valid_device "$device" && [ -d "/sys/class/net/$device" ] || exit 2
+    command -v ttyd >/dev/null 2>&1 || exit 1
+    echo "$$" >"$dir/pid"
+    chmod 600 "$dir/pid"
+    exec /usr/bin/ttyd -W -O -o -q -d 0 -m 1 -b "/$token" -i "$device" -p 7682 /usr/libexec/raywrt-terminal-shell >"$dir/log" 2>&1
+    ;;
+  watchdog)
+    sleep 45
+    if ! netstat -nt 2>/dev/null | grep -q ':7682 .*ESTABLISHED'; then
+      ubus call service delete '{"name":"raywrt-terminal","instance":"session"}' >/dev/null 2>&1 || true
+      rm -f "$dir/pid"
+    fi
+    ;;
+  *) exit 2;;
+esac

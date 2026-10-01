@@ -1,0 +1,101 @@
+#!/bin/sh
+# Forwarded WAN byte counters by current client IP; persistent identity is MAC.
+set -u
+umask 077
+db=/etc/raywrt-device-usage.csv
+meta_db=/etc/raywrt-device-meta.csv
+totals=/tmp/raywrt-device-usage-today.csv
+meta=/tmp/raywrt-device-meta.csv
+map=/tmp/raywrt-device-map.csv
+stamp=/tmp/raywrt-device-usage-stamp
+table=raywrt_device_usage
+day=$(date +%F)
+last_save=$(cat "$stamp" 2>/dev/null || date +%s)
+
+setting() { uci -q get "raywrt.usage.$1" 2>/dev/null || echo "$2"; }
+valid_mac() { [ "${#1}" -eq 17 ] || return 1; case "$1" in *[!0-9a-fA-F:]*|'') return 1;; esac; [ "$(printf %s "$1" | tr -cd ':' | wc -c)" -eq 5 ]; }
+valid_ip() { case "$1" in ''|*[!0-9a-fA-F:.]*) return 1;; esac; case "$1" in *.*) [ "$2" = 4 ];; *:*) [ "$2" = 6 ];; *) return 1;; esac; }
+valid_dev() { case "$1" in ''|*[!a-zA-Z0-9_.:-]*) return 1;; esac; }
+load_today() {
+  if [ ! -f "$totals" ]; then
+    if [ -f "$db" ]; then awk -F, -v d="$day" '$1==d {print $2","$3","$4}' "$db" >"$totals"; else : >"$totals"; fi
+  fi
+  [ -f "$meta" ] || { [ ! -f "$meta_db" ] || cp "$meta_db" "$meta"; [ -f "$meta" ] || : >"$meta"; }
+}
+discover() {
+  : >"$map.raw"
+  for family in 4 6; do
+    ip "-$family" neigh show dev br-lan 2>/dev/null | awk -v f="$family" '{for(i=1;i<=NF;i++)if($i=="lladdr"){print f","$1","$(i+1)",,LAN";break}}' >>"$map.raw"
+  done
+  if [ -f /tmp/dhcp.leases ]; then awk 'NF>=4 {print "4,"$3","$2","$4",LAN"}' /tmp/dhcp.leases >>"$map.raw"; fi
+  awk -F, '{key=$1","$2;mac=toupper($3);if(!seen[key]++) {f[key]=$1;ip[key]=$2;m[key]=mac;order[++n]=key};if($4!="")name[mac]=$4}
+    END {for(i=1;i<=n;i++){k=order[i];x=m[k];host=name[x];gsub(/[^A-Za-z0-9._-]/,"_",host);print f[k]","ip[k]","x","host",LAN"}}' "$map.raw" >"$map.named"
+  : >"$map.wifi"
+  iw dev 2>/dev/null | awk '$1=="Interface"{print $2}' | while read -r iface; do iw dev "$iface" station dump 2>/dev/null | awk '$1=="Station"{print toupper($2)}'; done | sort -u >"$map.wifi"
+  : >"$map"
+  while IFS=, read -r family addr mac host connection; do
+    valid_mac "$mac" && valid_ip "$addr" "$family" || continue
+    case "$addr" in fe80:*|FE80:*) continue;; esac
+    grep -Fqx "$mac" "$map.wifi" && connection=Wi-Fi
+    printf '%s,%s,%s,%s,%s\n' "$family" "$addr" "$(printf %s "$mac" | tr '[:lower:]' '[:upper:]')" "$host" "$connection" >>"$map"
+  done <"$map.named"
+  now=$(date +%s)
+  awk -F, -v t="$now" 'FILENAME==ARGV[1] {old[$1]=$0;next}
+    {m=$3;host=$4;if(host==""&&old[m]!=""){split(old[m],a,",");host=a[2]};if(!(m in fresh)||$1==4)fresh[m]=m","host","$2","$5","t}
+    END {for(m in old)if(!(m in fresh))print old[m];for(m in fresh)print fresh[m]}' "$meta" "$map" >"$meta.new"
+  mv -f "$meta.new" "$meta"
+}
+capture() {
+  nft list chain inet "$table" forward >"$map.rules" 2>/dev/null || return 0
+  awk '/comment "rw_/ {bytes=0;tag="";for(i=1;i<=NF;i++){if($i=="bytes")bytes=$(i+1);if($i=="comment")tag=$(i+1)}gsub(/"/,"",tag);split(tag,a,"_");if(length(a[2])!=12)next;mac="";for(i=1;i<=12;i+=2)mac=mac (i==1?"":":") substr(a[2],i,2);if(a[3]=="down")print mac "," bytes ",0";else if(a[3]=="up")print mac ",0," bytes}' "$map.rules" >"$map.delta"
+  cat "$totals" "$map.delta" | awk -F, 'NF>=3&&$1!="" {d[$1]+=$2;u[$1]+=$3} END{for(m in d)printf "%s,%.0f,%.0f\n",m,d[m],u[m]}' >"$totals.new"
+  mv -f "$totals.new" "$totals"
+  nft flush chain inet "$table" forward >/dev/null 2>&1 || true
+}
+install_rules() {
+  wan=$(ip -4 route show default 2>/dev/null | awk 'NR==1{for(i=1;i<=NF;i++)if($i=="dev"){print $(i+1);exit}}')
+  [ -n "$wan" ] || wan=$(ip -6 route show default 2>/dev/null | awk 'NR==1{for(i=1;i<=NF;i++)if($i=="dev"){print $(i+1);exit}}')
+  valid_dev "$wan" || return 0
+  nft list table inet "$table" >/dev/null 2>&1 || nft add table inet "$table" || return 1
+  nft list chain inet "$table" forward >/dev/null 2>&1 || nft 'add chain inet raywrt_device_usage forward { type filter hook forward priority 1; policy accept; }' || return 1
+  while IFS=, read -r family addr mac host connection; do
+    valid_mac "$mac" && valid_ip "$addr" "$family" || continue
+    hex=$(printf %s "$mac" | tr -d ':')
+    if [ "$family" = 4 ]; then src=ip; else src=ip6; fi
+    nft add rule inet "$table" forward iifname br-lan oifname "$wan" "$src" saddr "$addr" counter comment "rw_${hex}_up" || true
+    nft add rule inet "$table" forward iifname "$wan" oifname br-lan "$src" daddr "$addr" counter comment "rw_${hex}_down" || true
+  done <"$map"
+}
+flush() {
+  retention=$(setting retention 30)
+  case "$retention" in 1|3|7|14|30|60|90|180|365|never) ;; *) retention=30;; esac
+  { [ ! -f "$db" ] || awk -F, -v d="$day" '$1!=d && NF==4{print}' "$db"; awk -F, -v d="$day" 'NF==3{print d","$1","$2","$3}' "$totals"; } >"$db.new"
+  if [ "$retention" != never ]; then
+    cut -d, -f1 "$db.new" | sort -u | tail -n "$retention" >"$map.keep"
+    awk -F, 'FILENAME==ARGV[1]{keep[$1]=1;next} ($1 in keep){print}' "$map.keep" "$db.new" >"$db.trim"
+    mv -f "$db.trim" "$db.new"
+  fi
+  chmod 600 "$db.new"; mv -f "$db.new" "$db"
+  awk -F, 'FILENAME==ARGV[1]{keep[$2]=1;next} FILENAME==ARGV[2]{keep[$1]=1;next} ($1 in keep){print}' "$db" "$totals" "$meta" >"$meta_db.new"
+  chmod 600 "$meta_db.new"; mv -f "$meta_db.new" "$meta_db"
+  cp "$meta_db" "$meta"
+  last_save=$(date +%s); echo "$last_save" >"$stamp"
+}
+stop() { capture; flush; nft delete table inet "$table" >/dev/null 2>&1 || true; exit 0; }
+trap stop TERM INT
+load_today
+while :; do
+  if [ "$(setting enabled 1)" = 1 ]; then
+    today=$(date +%F)
+    if [ "$today" != "$day" ]; then capture; flush; day=$today; : >"$totals"; fi
+    capture
+    discover
+    install_rules
+    now=$(date +%s); interval=$(setting save_minutes 30)
+    case "$interval" in 15|30|60) ;; *) interval=30;; esac
+    [ "$now" -lt "$((last_save + interval * 60))" ] || flush
+  else
+    nft delete table inet "$table" >/dev/null 2>&1 || true
+  fi
+  sleep 30 & wait $!
+done

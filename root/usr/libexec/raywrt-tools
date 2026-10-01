@@ -1,0 +1,714 @@
+#!/bin/sh
+# Fixed-action package helper. Never accepts command text or package names.
+set -u
+umask 077
+
+jobdir=/tmp/raywrt-tools
+mkdir -p "$jobdir"
+chmod 700 "$jobdir"
+
+manager() {
+  if [ "${status_mode:-no}" = yes ] && [ -n "${status_manager:-}" ]; then
+    printf '%s\n' "$status_manager"
+    return 0
+  fi
+  if command -v apk >/dev/null 2>&1; then echo apk
+  elif command -v opkg >/dev/null 2>&1; then echo opkg
+  else echo none; fi
+}
+
+package_for() {
+  case "$1" in
+    wireguard) echo 'luci-proto-wireguard wireguard-tools kmod-wireguard' ;;
+    openvpn) echo 'openvpn-openssl luci-app-openvpn' ;;
+    xray) echo 'xray-core' ;;
+    singbox) echo 'sing-box' ;;
+    passwall2) echo 'luci-app-passwall2' ;;
+    terminal) echo 'ttyd' ;;
+    *) return 1 ;;
+  esac
+}
+
+package_listed_apk() {
+  package_name=$1; package_lines=$2
+  case "
+$package_lines" in *"
+$package_name"-[0-9]*) return 0 ;; esac
+  return 1
+}
+
+package_listed_opkg() {
+  package_name=$1; package_lines=$2
+  case "
+$package_lines" in *"
+$package_name - "*) return 0 ;; esac
+  return 1
+}
+
+installed() {
+  if [ "${status_mode:-no}" = yes ]; then
+    if [ "$status_manager" = apk ]; then package_listed_apk "$1" "$installed_lines"
+    else package_listed_opkg "$1" "$installed_lines"; fi
+    return $?
+  fi
+  if [ "$(manager)" = apk ]; then apk info -e "$1" >/dev/null 2>&1
+  elif [ "$(manager)" = opkg ]; then opkg list-installed "$1" 2>/dev/null | grep -q "^$1 "
+  else return 1; fi
+}
+
+available() {
+  if [ "$(manager)" = apk ]; then apk search -x "$1" 2>/dev/null | grep -q "^$1-"
+  elif [ "$(manager)" = opkg ]; then opkg list "$1" 2>/dev/null | grep -q "^$1 -"
+  else return 1; fi
+}
+
+version() {
+  if [ "$(manager)" = apk ]; then apk list --installed "$1" 2>/dev/null | sed -n "s/^$1-\([^ ]*\) .*/\1/p" | head -n 1
+  elif [ "$(manager)" = opkg ]; then opkg list-installed "$1" 2>/dev/null | awk 'NR==1{print $3}'
+  fi
+}
+
+route_exists() {
+  route=$1
+  if [ "${route_menu_loaded:-no}" = yes ]; then
+    case "$route_menu_data" in *"$route"*) return 0 ;; esac
+    return 1
+  fi
+  grep -R -F -q "$route" /usr/share/luci/menu.d 2>/dev/null
+}
+
+openvpn_manager_route() {
+  for route in admin/vpn/openvpn admin/services/openvpn; do
+    if route_exists "$route"; then printf '%s\n' "$route"; return 0; fi
+  done
+  # luci-app-openvpn in the 25.12 feed registers a legacy Lua controller.
+  if grep -Eq 'entry[[:space:]]*\([[:space:]]*\{[[:space:]]*"admin"[[:space:]]*,[[:space:]]*"vpn"[[:space:]]*,[[:space:]]*"openvpn"' /usr/lib/lua/luci/controller/openvpn.lua 2>/dev/null; then
+    echo admin/vpn/openvpn
+    return 0
+  fi
+  return 1
+}
+
+apk_add_full_ip() {
+  # APK replaces the existing positive world constraint by its same-name
+  # conflict constraint, then solves/removes/installs providers in ONE commit.
+  # Do not apk del ip-tiny first: that can remove the router's ip command.
+  if apk info --exists ip-tiny >/dev/null 2>&1; then
+    echo 'Replacing ip-tiny with ip-full in the same APK transaction; VPN dependencies are retained.'
+    apk add "$@" ip-full '!ip-tiny'
+  else
+    apk add "$@" ip-full
+  fi
+}
+
+passwall_xray_path() {
+  command -v xray 2>/dev/null || true
+}
+
+passwall_xray_ready() {
+  xray_path=$(passwall_xray_path)
+  [ -n "$xray_path" ] && [ -x "$xray_path" ] && "$xray_path" version >/dev/null 2>&1
+}
+
+passwall_module_ready() {
+  package=$1
+  module=$2
+  installed "$package" || [ -d "/sys/module/$module" ] || grep -q "^$module " /proc/modules 2>/dev/null
+}
+
+passwall_proxy_ready() {
+  passwall_module_ready kmod-nft-tproxy nft_tproxy && passwall_module_ready kmod-nft-socket nft_socket
+}
+
+passwall_package_files() {
+  package=$1
+  if [ "$(manager)" = apk ]; then apk info -L "$package" 2>/dev/null
+  elif [ "$(manager)" = opkg ]; then opkg files "$package" 2>/dev/null
+  else return 1; fi
+}
+
+passwall_manager_route_deep() {
+  route=admin/services/passwall2
+  if route_exists "$route"; then printf '%s\n' "$route"; return 0; fi
+
+  files=$(passwall_package_files luci-app-passwall2) || return 1
+  api_file=$(printf '%s\n' "$files" | sed -n 's#^/*\(usr/lib/lua/luci/passwall2/api\.lua\)$#/\1#p' | head -n 1)
+  [ -n "$api_file" ] && [ -r "$api_file" ] || return 1
+  appname=$(sed -n "s/^[[:space:]]*appname[[:space:]]*=[[:space:]]*['\"]\([^'\"]*\)['\"].*/\1/p" "$api_file" | head -n 1)
+  [ -n "$appname" ] || return 1
+
+  controllers=$(printf '%s\n' "$files" | sed -n 's#^/*\(usr/lib/lua/luci/controller/[^/]*\.lua\)$#/\1#p')
+  for controller in $controllers; do
+    [ -r "$controller" ] || continue
+    if grep -Fq 'luci.passwall2.api' "$controller" &&
+       grep -Eq '^[[:space:]]*entry.*"admin".*"services".*appname' "$controller"; then
+      printf 'admin/services/%s\n' "$appname"
+      return 0
+    fi
+  done
+  return 1
+}
+
+passwall_manager_route() {
+  api_file=/usr/lib/lua/luci/passwall2/api.lua
+  controller=/usr/lib/lua/luci/controller/passwall2.lua
+  if [ -r "$api_file" ] && [ -r "$controller" ] &&
+     grep -Fq 'appname = "passwall2"' "$api_file" &&
+     grep -Fq 'luci.passwall2.api' "$controller" &&
+     grep -Eq '^[[:space:]]*entry.*"admin".*"services".*appname' "$controller"; then
+    printf '%s\n' admin/services/passwall2
+    return 0
+  fi
+  return 1
+}
+
+passwall_manager_route_ready() {
+  [ "$(passwall_manager_route_deep)" = admin/services/passwall2 ]
+}
+
+passwall_service_path_deep() {
+  passwall_package_files luci-app-passwall2 | sed -n 's#^/*\(etc/init.d/[^[:space:]]*\)$#/\1#p' | head -n 1
+}
+
+passwall_service_path() {
+  for path in /etc/init.d/passwall2 /etc/init.d/passwall; do
+    [ -x "$path" ] && { printf '%s\n' "$path"; return 0; }
+  done
+  return 1
+}
+
+passwall_service_ready() {
+  service_path=$(passwall_service_path_deep)
+  [ -n "$service_path" ] && [ -x "$service_path" ]
+}
+
+passwall_configured() {
+  config=$(uci -q show passwall2 2>/dev/null || true)
+  [ -n "$config" ] || return 1
+  addresses=$(printf '%s\n' "$config" | sed -n "s/^passwall2\.[^.]*\.address='\(.*\)'$/\1/p")
+  for address in $addresses; do
+    case "$address" in ''|passwall2.github|127.0.0.1|localhost) ;; *) return 0 ;; esac
+  done
+  return 1
+}
+
+passwall_running() {
+  pidof xray >/dev/null 2>&1 || pidof sing-box >/dev/null 2>&1 || pidof ss-redir >/dev/null 2>&1
+}
+
+passwall_cache_file="$jobdir/passwall-presence.cache"
+passwall_cache_ttl=30
+passwall_presence_cache() {
+  now=$(date +%s)
+  cached_at=$(sed -n '1p' "$passwall_cache_file" 2>/dev/null || echo 0)
+  case "$cached_at" in *[!0-9]*|'') cached_at=0 ;; esac
+  if [ -s "$passwall_cache_file" ] && [ $((now - cached_at)) -ge 0 ] && [ $((now - cached_at)) -lt "$passwall_cache_ttl" ]; then
+    sed '1d' "$passwall_cache_file"
+    return
+  fi
+  pw_package=no; installed luci-app-passwall2 && pw_package=yes
+  route=no; passwall_manager_route >/dev/null && route=yes
+  xray_package=no; installed xray-core && xray_package=yes
+  xray_path=$(passwall_xray_path)
+  xray_ready=no; [ -n "$xray_path" ] && [ -x "$xray_path" ] && xray_ready=yes
+  nft_tproxy=no; passwall_module_ready kmod-nft-tproxy nft_tproxy && nft_tproxy=yes
+  nft_socket=no; passwall_module_ready kmod-nft-socket nft_socket && nft_socket=yes
+  service_path=$(passwall_service_path || true)
+  service_ready=no; [ -n "$service_path" ] && [ -x "$service_path" ] && service_ready=yes
+  {
+    printf '%s\n' "$now"
+    printf 'passwall_package=%s\npasswall_luci_route=%s\npasswall_xray_package=%s\npasswall_xray_path=%s\npasswall_xray_ready=%s\npasswall_nft_tproxy=%s\npasswall_nft_socket=%s\npasswall_service=%s\npasswall_service_ready=%s\n' \
+      "$pw_package" "$route" "$xray_package" "$xray_path" "$xray_ready" "$nft_tproxy" "$nft_socket" "${service_path:-not-provided}" "$service_ready"
+  } >"$passwall_cache_file.tmp"
+  chmod 600 "$passwall_cache_file.tmp"
+  mv "$passwall_cache_file.tmp" "$passwall_cache_file"
+  sed '1d' "$passwall_cache_file"
+}
+
+passwall_load_presence() {
+  passwall_package=no; passwall_route=no; passwall_xray_package=no; passwall_xray_path=; passwall_xray=no
+  passwall_nft_tproxy=no; passwall_nft_socket=no; passwall_service=not-provided; passwall_service_ready=no
+  while IFS='=' read -r key value; do
+    case "$key" in
+      passwall_package) passwall_package=$value ;;
+      passwall_luci_route) passwall_route=$value ;;
+      passwall_xray_package) passwall_xray_package=$value ;;
+      passwall_xray_path) passwall_xray_path=$value ;;
+      passwall_xray_ready) passwall_xray=$value ;;
+      passwall_nft_tproxy) passwall_nft_tproxy=$value ;;
+      passwall_nft_socket) passwall_nft_socket=$value ;;
+      passwall_service) passwall_service=$value ;;
+      passwall_service_ready) passwall_service_ready=$value ;;
+    esac
+  done <<EOF
+$(passwall_presence_cache)
+EOF
+}
+
+invalidate_presence_cache() {
+  rm -f "$passwall_cache_file" "$passwall_cache_file.tmp"
+}
+
+tool_package_list='luci-proto-wireguard wireguard-tools kmod-wireguard openvpn-openssl luci-app-openvpn xray-core sing-box luci-app-passwall2 ttyd'
+package_cache_file="$jobdir/package-availability.cache"
+package_cache_ttl=300
+package_availability_cache() {
+  now=$(date +%s)
+  cached_at=$(sed -n '1p' "$package_cache_file" 2>/dev/null || echo 0)
+  case "$cached_at" in *[!0-9]*|'') cached_at=0 ;; esac
+  if [ -s "$package_cache_file" ] && [ $((now - cached_at)) -ge 0 ] && [ $((now - cached_at)) -lt "$package_cache_ttl" ]; then
+    sed '1d' "$package_cache_file"
+    return 0
+  fi
+  return 1
+}
+
+refresh_package_availability_cache() {
+  tmp="$package_cache_file.tmp"
+  if [ "$(manager)" = apk ]; then
+    apk search -x $tool_package_list >"$tmp" 2>/dev/null || :
+  elif [ "$(manager)" = opkg ]; then
+    opkg list >"$tmp" 2>/dev/null || :
+  else
+    return 1
+  fi
+  { date +%s; cat "$tmp"; } >"$package_cache_file.new"
+  chmod 600 "$package_cache_file.new"
+  mv "$package_cache_file.new" "$package_cache_file"
+  rm -f "$tmp"
+}
+
+invalidate_package_availability_cache() {
+  rm -f "$package_cache_file" "$package_cache_file.tmp" "$package_cache_file.new"
+}
+
+passwall_installed() {
+  installed luci-app-passwall2 &&
+    passwall_manager_route_ready &&
+    passwall_service_ready &&
+    installed xray-core &&
+    passwall_xray_ready &&
+    passwall_proxy_ready
+}
+
+passwall_readiness_report() {
+  if installed luci-app-passwall2; then echo 'Passwall2 package: PASS'; else echo 'Passwall2 package: FAIL (luci-app-passwall2 is not installed)'; fi
+  route_path=$(passwall_manager_route_deep || true)
+  if [ "$route_path" = admin/services/passwall2 ]; then echo "LuCI route: PASS ($route_path)"; elif [ -n "$route_path" ]; then echo "LuCI route: FAIL (unexpected route $route_path)"; else echo 'LuCI route: FAIL (no manager route was found in installed LuCI menu/controller files)'; fi
+  if installed xray-core; then echo 'Xray package: PASS'; else echo 'Xray package: FAIL (xray-core is not installed)'; fi
+  xray_path=$(passwall_xray_path)
+  if [ -n "$xray_path" ] && [ -x "$xray_path" ] && "$xray_path" version >/dev/null 2>&1; then
+    echo "Xray binary: PASS ($xray_path)"
+  elif [ -n "$xray_path" ]; then
+    echo "Xray binary: FAIL ($xray_path exists but 'xray version' did not execute successfully)"
+  else
+    echo 'Xray binary: FAIL (command -v xray returned no path)'
+  fi
+  if passwall_module_ready kmod-nft-tproxy nft_tproxy; then echo 'Transparent proxy nft_tproxy: PASS (module package installed or kernel module available)'; else echo 'Transparent proxy nft_tproxy: FAIL (kmod-nft-tproxy is absent and nft_tproxy is unavailable)'; fi
+  if passwall_module_ready kmod-nft-socket nft_socket; then echo 'Transparent proxy nft_socket: PASS (module package installed or kernel module available)'; else echo 'Transparent proxy nft_socket: FAIL (kmod-nft-socket is absent and nft_socket is unavailable)'; fi
+  service_path=$(passwall_service_path_deep || true)
+  if [ -n "$service_path" ] && [ -x "$service_path" ]; then echo "Passwall service path: PASS ($service_path; running state is not required)"; else echo 'Passwall service path: FAIL (no executable init script found in installed package contents)'; fi
+  if passwall_configured; then echo 'Configured: YES'; else echo 'Configured: NO'; fi
+  if passwall_running; then echo 'Running: YES'; else echo 'Running: NO'; fi
+}
+
+invalidate_luci_menu_cache() {
+  rm -f /tmp/luci-indexcache.*
+  # Legacy LuCI applications register Lua controllers, not menu JSON files.
+  rm -f /tmp/luci-modulecache/*
+  /etc/init.d/rpcd reload >/dev/null 2>&1 || true
+}
+
+set_index_state() {
+  uci -q set "raywrt.system.package_indexes=$1" 2>/dev/null || true
+  uci -q commit raywrt 2>/dev/null || true
+}
+
+passwall_download() {
+  file="$jobdir/Passwall-IR.sh"
+  url='https://raw.githubusercontent.com/saeed9400/IRAN_Passwall2/main/v1/Passwall-IR.sh'
+  echo 'Removing old installer...'
+  rm -f "$file"
+  echo "Downloading Passwall-IR.sh from $url..."
+  if ! wget -T 30 -O "$file" "$url"; then echo 'Download failed: check DNS, GitHub reachability and TLS.'; return 1; fi
+  bytes=$(wc -c <"$file" | tr -d ' ')
+  case "$bytes" in ''|*[!0-9]*) echo 'Could not verify installer size.'; return 1;; esac
+  if [ "$bytes" -lt 1024 ] || [ "$bytes" -gt 1048576 ]; then echo "Unexpected installer size: $bytes bytes (expected 1 KiB–1 MiB)."; return 1; fi
+  head -n 1 "$file" | grep -q '^#!/bin/sh' || { echo 'Download is not the expected shell script.'; return 1; }
+  echo "Download complete. Size: $bytes bytes."
+  if command -v sha256sum >/dev/null 2>&1; then echo "SHA256: $(sha256sum "$file" | awk '{print $1}')"; fi
+  chmod 700 "$file"
+}
+
+passwall_apk_preflight() {
+  . /etc/openwrt_release
+  case "$DISTRIB_RELEASE" in 25.12.*) ;; *) echo "No verified APK feed for OpenWrt $DISTRIB_RELEASE."; return 1;; esac
+  url="https://master.dl.sourceforge.net/project/openwrt-passwall-build/releases/packages-25.12/$DISTRIB_ARCH/passwall2/packages.adb"
+  echo 'Checking Internet, DNS and Passwall repository reachability...'
+  if ! wget -T 20 -O /dev/null 'https://sourceforge.net/projects/openwrt-passwall-build/files/apk.pub'; then
+    echo 'Unable to reach the Passwall installer source. Check WAN, DNS and TLS, then retry.'; return 1
+  fi
+  echo 'Checking Passwall APK signing key...'
+  wget -T 30 -O "$jobdir/passwall-preflight.pub" 'https://sourceforge.net/projects/openwrt-passwall-build/files/apk.pub' || return 1
+  grep -q '^-----BEGIN PUBLIC KEY-----' "$jobdir/passwall-preflight.pub" || { echo 'Invalid signing key download.'; return 1; }
+  echo 'Checking Passwall 2 APK package index...'
+  wget -T 30 -O "$jobdir/passwall-preflight.adb" "$url" || return 1
+  [ "$(head -c 4 "$jobdir/passwall-preflight.adb")" = ADBd ] || { echo 'Invalid APK package index.'; return 1; }
+  apk adbdump "$jobdir/passwall-preflight.adb" | grep -q 'name: luci-app-passwall2' || { echo 'Passwall 2 package is absent from the index.'; return 1; }
+  echo 'Passwall 2 APK feed is reachable and contains luci-app-passwall2.'
+}
+
+passwall_worker() {
+  echo 'Preparing installer...'
+  passwall_download || { echo failed >"$jobdir/state"; rmdir "$jobdir/lock" 2>/dev/null || true; exit 1; }
+  if [ "$(manager)" != opkg ]; then
+    echo 'Automatic installation stopped: IRAN_Passwall2 v1 requires opkg. This router uses apk. The script would also replace dnsmasq and change DNS settings.'
+    echo failed >"$jobdir/state"; rmdir "$jobdir/lock" 2>/dev/null || true; exit 1
+  fi
+  if grep -Eq '^[[:space:]]*(read|select)[[:space:]]|(^|[[:space:]])(whiptail|dialog)[[:space:]]' "$jobdir/Passwall-IR.sh"; then
+    echo 'Installer requests interactive input. Run it in RayWRT Terminal instead.'
+    echo failed >"$jobdir/state"; rmdir "$jobdir/lock" 2>/dev/null || true; exit 1
+  fi
+  free=$(df -k /overlay | awk 'NR==2{print $4}')
+  if [ "${free:-0}" -lt 65536 ]; then echo 'Less than 64 MiB of overlay space available.'; echo failed >"$jobdir/state"; rmdir "$jobdir/lock" 2>/dev/null || true; exit 1; fi
+  echo 'Starting installer...'
+  sh "$jobdir/Passwall-IR.sh"
+  rc=$?
+  invalidate_presence_cache
+  if [ "$rc" -ne 0 ]; then echo "Installer failed with exit code $rc."; echo failed >"$jobdir/state"; rmdir "$jobdir/lock" 2>/dev/null || true; exit "$rc"; fi
+  if ! passwall_installed; then passwall_readiness_report; echo 'Passwall 2 installation verification failed; see the individual component results above.'; echo failed >"$jobdir/state"; rmdir "$jobdir/lock" 2>/dev/null || true; exit 1; fi
+  invalidate_luci_menu_cache
+  echo 'LuCI menu cache cleared.'
+  if ! passwall_installed; then passwall_readiness_report; echo 'Passwall 2 installation verification failed after menu refresh; see the individual component results above.'; echo failed >"$jobdir/state"; rmdir "$jobdir/lock" 2>/dev/null || true; exit 1; fi
+  passwall_readiness_report
+  echo 'Passwall 2 installation verified. Configure a node and start the service from its manager when ready.'
+  echo success >"$jobdir/state"
+  rmdir "$jobdir/lock" 2>/dev/null || true
+}
+
+passwall_apk_worker() {
+  . /etc/openwrt_release
+  [ "$(manager)" = apk ] || { echo 'APK installer requires apk.'; echo failed >"$jobdir/state"; exit 1; }
+  case "$DISTRIB_RELEASE" in 25.12.*) ;; *) echo "No verified Passwall 2 feed for OpenWrt $DISTRIB_RELEASE."; echo failed >"$jobdir/state"; exit 1;; esac
+  case "$DISTRIB_ARCH" in ''|*[!a-zA-Z0-9_-]*) echo 'Invalid router architecture.'; echo failed >"$jobdir/state"; exit 1;; esac
+  free=$(df -k /overlay | awk 'NR==2{print $4}')
+  [ "${free:-0}" -ge 65536 ] || { echo 'At least 64 MiB of overlay space is required.'; echo failed >"$jobdir/state"; exit 1; }
+  key=/etc/apk/keys/passwall.pub
+  feeds=/etc/apk/repositories.d/customfeeds.list
+  base="https://master.dl.sourceforge.net/project/openwrt-passwall-build/releases/packages-25.12/$DISTRIB_ARCH"
+  mkdir -p "$(dirname "$key")" "$(dirname "$feeds")"
+  passwall_key_existed=0; passwall_feeds_existed=0; passwall_install_success=0
+  [ ! -e "$key" ] || passwall_key_existed=1
+  [ ! -e "$feeds" ] || passwall_feeds_existed=1
+  [ "$passwall_key_existed" -eq 0 ] || cp -p "$key" "$jobdir/passwall-key.backup" || { echo 'Could not back up the existing APK signing key.'; echo failed >"$jobdir/state"; exit 1; }
+  [ "$passwall_feeds_existed" -eq 0 ] || cp -p "$feeds" "$jobdir/passwall-feeds.backup" || { echo 'Could not back up the existing APK feed list.'; echo failed >"$jobdir/state"; exit 1; }
+  passwall_restore_repo() {
+    [ "$passwall_install_success" -eq 1 ] && return 0
+    if [ "$passwall_feeds_existed" -eq 1 ]; then cp -p "$jobdir/passwall-feeds.backup" "$feeds"; else rm -f "$feeds"; fi
+    if [ "$passwall_key_existed" -eq 1 ]; then cp -p "$jobdir/passwall-key.backup" "$key"; else rm -f "$key"; fi
+    rm -f "$jobdir/passwall-feeds.backup" "$jobdir/passwall-key.backup"
+  }
+  trap passwall_restore_repo EXIT
+  trap 'exit 1' HUP INT TERM
+  echo 'Downloading Passwall repository signing key...'
+  if ! wget -T 30 -O "$jobdir/passwall.pub" 'https://sourceforge.net/projects/openwrt-passwall-build/files/apk.pub'; then
+    echo 'Unable to reach the Passwall installer source. Check WAN, DNS and TLS, then retry.'; echo failed >"$jobdir/state"; exit 1
+  fi
+  grep -q '^-----BEGIN PUBLIC KEY-----' "$jobdir/passwall.pub" || { echo 'Invalid repository signing key.'; echo failed >"$jobdir/state"; exit 1; }
+  cp "$jobdir/passwall.pub" "$key"
+  for feed in passwall_packages passwall_luci passwall2; do
+    url="$base/$feed/packages.adb"
+    grep -Fqx "$url" "$feeds" 2>/dev/null || printf '%s\n' "$url" >>"$feeds"
+  done
+  echo 'Updating signed package indexes...'
+  set_index_state initializing
+  if ! apk update; then set_index_state failed; echo 'Package index update failed.'; echo failed >"$jobdir/state"; exit 1; fi
+  set_index_state ready
+  /etc/init.d/raywrt-package-index-init disable 2>/dev/null || true
+  echo 'Installing Passwall 2, Xray and transparent proxy modules with APK...'
+  apk_add_full_ip luci-app-passwall2 xray-core kmod-nft-tproxy kmod-nft-socket
+  install_rc=$?
+  invalidate_presence_cache
+  if [ "$install_rc" -ne 0 ]; then echo 'APK installation failed.'; echo failed >"$jobdir/state"; exit "$install_rc"; fi
+  invalidate_luci_menu_cache
+  echo 'LuCI menu cache cleared.'
+  if ! passwall_installed; then passwall_readiness_report; echo 'Packages were installed, but one or more installation requirements failed; see the exact component results above.'; echo failed >"$jobdir/state"; exit 1; fi
+  passwall_readiness_report
+  echo 'Passwall 2, LuCI route, Xray and transparent proxy support are installed. Service startup and node configuration are separate.'
+  passwall_install_success=1
+  rm -f "$jobdir/passwall-feeds.backup" "$jobdir/passwall-key.backup"
+  echo success >"$jobdir/state"
+  rmdir "$jobdir/lock" 2>/dev/null || true
+}
+
+status() {
+  . /etc/openwrt_release
+  status_manager=$(manager)
+  status_mode=yes
+  route_menu_loaded=yes
+  route_menu_data=$(cat /usr/share/luci/menu.d/*.json 2>/dev/null)
+  index_state=$(uci -q get raywrt.system.package_indexes 2>/dev/null || true)
+  case "$index_state" in pending|initializing|ready|failed) ;; *) index_state=ready ;; esac
+  availability_known=no
+  if [ "$status_manager" = apk ]; then
+    installed_lines=$(apk list --installed 2>/dev/null)
+    available_lines=$(package_availability_cache) && availability_known=yes || available_lines=
+  else
+    installed_lines=$(opkg list-installed 2>/dev/null)
+    available_lines=$(package_availability_cache) && availability_known=yes || available_lines=
+  fi
+  passwall_load_presence
+  root_hash=$(awk -F: '$1=="root"{print $2}' /etc/shadow)
+  case "$root_hash" in ''|'!'|'*') root_password=blank ;; *) root_password=set ;; esac
+  printf 'manager=%s\narch=%s\nrelease=%s\noverlay_kb=%s\ntmp_kb=%s\n' \
+    "$status_manager" "$DISTRIB_ARCH" "$DISTRIB_RELEASE" \
+    "$(df -k /overlay | awk 'NR==2{print $4}')" "$(df -k /tmp | awk 'NR==2{print $4}')"
+  printf 'indexes=%s\n' "$index_state"
+  printf 'memory_available_kb=%s\n' "$(awk '/^MemAvailable:/{print $2}' /proc/meminfo)"
+  if [ "$status_manager" = apk ]; then
+    grep -h '^https\?://' /etc/apk/repositories.d/* 2>/dev/null | sed 's#//[^/@]*@#//[redacted]@#' | awk '{print "repository_" NR "=" $0}'
+  else
+    awk '/^src\/gz /{print "repository_" NR "=" $3}' /etc/opkg/distfeeds.conf /etc/opkg/customfeeds.conf 2>/dev/null
+  fi
+  printf 'root_password=%s\n' "$root_password"
+  ttyd_command=$(uci -q get ttyd.@ttyd[0].command 2>/dev/null || true)
+  ttyd_interface=$(uci -q get ttyd.@ttyd[0].interface 2>/dev/null || true)
+  terminal_safe=no
+  if installed ttyd && [ "$(uci -q get ttyd.@ttyd[0].enable 2>/dev/null || echo 0)" != 1 ]; then
+    terminal_safe=yes
+  fi
+  printf 'terminal_safe=%s\n' "$terminal_safe"
+  for pair in \
+    'wifi:admin/network/wireless' \
+    'interfaces:admin/network/network' \
+    'firewall:admin/network/firewall' \
+    'diagnostics:admin/raywrt-tools/diagnostics' \
+    'packages:admin/raywrt-tools/packages' \
+    'backup:admin/raywrt-tools/backup' \
+    'reboot:admin/raywrt/reboot' \
+    'storage:admin/raywrt-tools/settings' \
+    'terminal:admin/raywrt-tools/terminal' \
+    'logs:admin/status/logs' \
+    'usage:admin/raywrt-tools/usage' \
+    'passwall2:admin/services/passwall2' \
+    'wireguard:admin/raywrt-tools/wireguard' \
+    'openvpn:admin/vpn/openvpn'; do
+    id=${pair%%:*}; route=${pair#*:}
+    if [ "$id" = passwall2 ]; then
+      if [ "$passwall_route" = yes ]; then printf 'route_%s=yes\n' "$id"; else printf 'route_%s=no\n' "$id"; fi
+    elif [ "$id" = openvpn ]; then
+      openvpn_route=$(openvpn_manager_route || true)
+      printf 'openvpn_route=%s\n' "$openvpn_route"
+      if [ -n "$openvpn_route" ]; then echo 'route_openvpn=yes'; else echo 'route_openvpn=no'; fi
+    elif route_exists "$route" && { [ "$id" != packages ] || installed luci-app-package-manager; }; then
+      printf 'route_%s=yes\n' "$id"
+    else
+      printf 'route_%s=no\n' "$id"
+    fi
+  done
+  usage_enabled=$(uci -q get raywrt.usage.enabled 2>/dev/null || echo 1)
+  usage_route=$(route_exists admin/raywrt-tools/usage && echo yes || echo no)
+  if [ ! -x /usr/libexec/raywrt-usage ] || [ "$usage_route" != yes ]; then usage_state=unavailable
+  elif [ "$usage_enabled" = 0 ]; then usage_state=disabled
+  elif pidof raywrt-usage >/dev/null 2>&1; then usage_state=active
+  else usage_state=error; fi
+  printf 'usage_enabled=%s\ntool_usage=%s\n' "$usage_enabled" "$usage_state"
+  if uci -q show network 2>/dev/null | grep -q "\.proto='wireguard'"; then echo 'wireguard_configured=yes'; else echo 'wireguard_configured=no'; fi
+  for id in wifi interfaces firewall diagnostics packages backup reboot storage logs; do
+    case "$id" in
+      wifi) route=admin/network/wireless;; interfaces) route=admin/network/network;; firewall) route=admin/network/firewall;;
+      diagnostics) route=admin/raywrt-tools/diagnostics;; packages) route=admin/raywrt-tools/packages;;
+      backup) route=admin/raywrt-tools/backup;; reboot) route=admin/raywrt/reboot;;
+      storage) route=admin/raywrt-tools/settings;; logs) route=admin/status/logs;;
+    esac
+    if route_exists "$route" && { [ "$id" != packages ] || installed luci-app-package-manager; }; then printf 'tool_%s=available\n' "$id"; else printf 'tool_%s=unavailable\n' "$id"; fi
+  done
+  for id in wireguard openvpn xray singbox passwall2 terminal; do
+    packages=$(package_for "$id")
+    first=${packages%% *}
+    all_available=1
+    all_installed=1
+    for pkg in $packages; do
+      if [ "$status_manager" = apk ]; then
+        package_listed_apk "$pkg" "$available_lines" || all_available=0
+        package_listed_apk "$pkg" "$installed_lines" || all_installed=0
+      else
+        package_listed_opkg "$pkg" "$available_lines" || all_available=0
+        package_listed_opkg "$pkg" "$installed_lines" || all_installed=0
+      fi
+    done
+    if [ "$(manager)" = apk ]; then
+      installed_first=$(printf '%s\n' "$installed_lines" | grep "^$first-[0-9]" | head -n 1)
+      installed_version=$(printf '%s\n' "$installed_first" | sed "s/^$first-\([^ ]*\).*/\1/")
+    else
+      installed_first=$(printf '%s\n' "$installed_lines" | grep "^$first - " | head -n 1)
+      installed_version=$(printf '%s\n' "$installed_first" | awk '{print $3}')
+    fi
+    if [ "$id" = passwall2 ]; then
+      passwall_configured=no; passwall_configured && passwall_configured=yes
+      passwall_runtime=stopped; passwall_running && passwall_runtime=running
+      printf 'passwall_package=%s\npasswall_luci_route=%s\npasswall_xray_package=%s\npasswall_xray_path=%s\npasswall_xray_ready=%s\npasswall_nft_tproxy=%s\npasswall_nft_socket=%s\npasswall_service=%s\npasswall_service_ready=%s\npasswall_configured=%s\npasswall_runtime=%s\n' \
+        "$passwall_package" "$passwall_route" "$passwall_xray_package" "$passwall_xray_path" "$passwall_xray" "$passwall_nft_tproxy" "$passwall_nft_socket" "${passwall_service:-not-provided}" "$passwall_service_ready" "$passwall_configured" "$passwall_runtime"
+      if [ "$passwall_package" = yes ] && [ "$passwall_route" = yes ] && [ "$passwall_service_ready" = yes ] &&
+         [ "$passwall_xray_package" = yes ] && [ "$passwall_xray" = yes ] && [ "$passwall_nft_tproxy" = yes ] && [ "$passwall_nft_socket" = yes ]; then
+        printf 'tool_passwall2=installed\nversion_passwall2=%s\n' "$installed_version"
+      elif [ "$passwall_package" = yes ]; then
+        printf 'tool_passwall2=install_failed\n'
+      elif [ "$(manager)" = apk ] || [ "$(manager)" = opkg ]; then
+        printf 'tool_passwall2=not_installed\n'
+      else
+        printf 'tool_passwall2=unsupported\n'
+      fi
+      continue
+    fi
+    if [ "$(manager)" = none ]; then
+      printf 'tool_%s=unsupported\n' "$id"
+    elif [ "$all_installed" -eq 1 ]; then
+      printf 'tool_%s=installed\nversion_%s=%s\n' "$id" "$id" "$installed_version"
+    elif [ "$index_state" = pending ] || [ "$index_state" = initializing ]; then
+      printf 'tool_%s=checking\n' "$id"
+    elif [ "$index_state" = failed ]; then
+      printf 'tool_%s=index_error\n' "$id"
+    elif [ "$all_available" -eq 1 ]; then
+      printf 'tool_%s=available\n' "$id"
+    elif [ "$availability_known" != yes ]; then
+      printf 'tool_%s=not_installed\n' "$id"
+    else
+      printf 'tool_%s=package_not_found\n' "$id"
+    fi
+  done
+}
+
+run_worker() {
+  id=$1
+  operation=$2
+  packages=$(package_for "$id") || exit 2
+  case "$operation" in install|update|remove) ;; *) echo 'Invalid operation'; exit 2 ;; esac
+  printf 'Checking package manager and storage...\n'
+  mgr=$(manager)
+  [ "$mgr" != none ] || { echo 'No supported package manager'; echo failed >"$jobdir/state"; exit 1; }
+  if [ "$operation" != remove ]; then
+    free=$(df -k /overlay | awk 'NR==2{print $4}')
+    [ "${free:-0}" -ge 32768 ] || { echo 'Less than 32 MiB of overlay space available'; echo failed >"$jobdir/state"; exit 1; }
+    for pkg in $packages; do
+      if ! installed "$pkg" && ! available "$pkg"; then
+        echo "Package unavailable in configured feeds: $pkg"
+        echo failed >"$jobdir/state"
+        exit 1
+      fi
+    done
+  fi
+  echo "$operation fixed package set for $id: $packages"
+  if [ "$mgr" = apk ]; then
+    # Word splitting is limited to the fixed allowlist above.
+    case "$operation" in install) apk add $packages ;; update) apk upgrade $packages ;; remove) apk del $packages ;; esac
+  else
+    case "$operation" in install) opkg install $packages ;; update) opkg upgrade $packages ;; remove) opkg remove $packages ;; esac
+  fi
+  rc=$?
+  invalidate_presence_cache
+  if [ "$rc" -eq 0 ]; then
+    invalidate_luci_menu_cache
+    echo success >"$jobdir/state"
+    echo "$operation complete."
+  else
+    echo failed >"$jobdir/state"
+    echo "$operation failed with exit code $rc."
+  fi
+  rmdir "$jobdir/lock" 2>/dev/null || true
+  exit "$rc"
+}
+
+start_fixed_job() {
+  id=$1; operation=$2
+  case "$operation" in
+    install|update|remove) invalidate_presence_cache ;;
+    refresh) invalidate_package_availability_cache ;;
+  esac
+  if [ -f "$jobdir/pid" ] && kill -0 "$(cat "$jobdir/pid")" 2>/dev/null; then
+    echo 'An installation is already running' >&2; return 1
+  fi
+  rmdir "$jobdir/lock" 2>/dev/null || true
+  mkdir "$jobdir/lock" 2>/dev/null || { echo 'An installation is already starting' >&2; return 1; }
+  job_id="$(date +%s)-$$"
+  echo "$job_id" >"$jobdir/job_id"
+  echo starting >"$jobdir/state"
+  : >"$jobdir/log"
+  chmod 600 "$jobdir/state" "$jobdir/log"
+  # LuCI file.exec waits for child processes even when they are backgrounded.
+  # Let procd own package jobs so the RPC returns before network/package work.
+  payload="{\"name\":\"raywrt-tools-job\",\"script\":\"/bin/true\",\"instances\":{\"runner\":{\"command\":[\"/usr/libexec/raywrt-tools\",\"worker\",\"$id\",\"$operation\"]}}}"
+  if ! ubus call service add "$payload" >/dev/null 2>&1; then
+    echo failed >"$jobdir/state"
+    rmdir "$jobdir/lock" 2>/dev/null || true
+    echo 'Could not start the background package task.' >&2
+    return 1
+  fi
+  printf 'started\njob_id=%s\n' "$job_id"
+}
+
+action=${1:-}
+case "$action" in
+  status) status ;;
+  preflight_passwall2) start_fixed_job preflight passwall2 ;;
+  install_passwall2) start_fixed_job passwall2 install ;;
+  refresh) start_fixed_job indexes refresh ;;
+  start)
+    id=${2:-}
+    operation=${3:-install}
+    package_for "$id" >/dev/null || { echo 'Unknown tool' >&2; exit 2; }
+    [ "$id" != passwall2 ] || { echo 'Use the fixed install_passwall2 action' >&2; exit 2; }
+    case "$operation" in install|update|remove) ;; *) echo 'Invalid operation' >&2; exit 2 ;; esac
+    start_fixed_job "$id" "$operation" ;;
+  worker)
+    id=${2:-}; operation=${3:-}
+    echo "$$" >"$jobdir/pid"
+    chmod 600 "$jobdir/pid"
+    echo running >"$jobdir/state"
+    exec >>"$jobdir/log" 2>&1
+    if [ "$id" = indexes ] && [ "$operation" = refresh ]; then
+      set_index_state initializing
+      case "$(manager)" in
+        apk) apk update ;;
+        opkg) opkg update ;;
+        *) echo 'No package manager'; echo failed >"$jobdir/state"; rmdir "$jobdir/lock" 2>/dev/null || true; exit 1 ;;
+      esac
+      rc=$?
+      if [ "$rc" -eq 0 ]; then
+        refresh_package_availability_cache
+        set_index_state ready
+        /etc/init.d/raywrt-package-index-init disable 2>/dev/null || true
+        echo success >"$jobdir/state"
+      else
+        set_index_state failed
+        echo failed >"$jobdir/state"
+      fi
+      rmdir "$jobdir/lock" 2>/dev/null || true
+      exit "$rc"
+    fi
+    if [ "$id" = preflight ] && [ "$operation" = passwall2 ]; then
+      if [ "$(manager)" = apk ]; then passwall_apk_preflight; else passwall_download; fi
+      rc=$?
+      if [ "$rc" -eq 0 ]; then echo success >"$jobdir/state"; else echo failed >"$jobdir/state"; fi
+      rmdir "$jobdir/lock" 2>/dev/null || true
+      exit "$rc"
+    fi
+    package_for "$id" >/dev/null || exit 2
+    if [ "$id" = passwall2 ] && [ "${3:-}" = install ]; then
+      if [ "$(manager)" = apk ]; then passwall_apk_worker; else passwall_worker; fi
+    else run_worker "$id" "${3:-}"; fi ;;
+  progress)
+    current=$(cat "$jobdir/state" 2>/dev/null || echo idle)
+    job_id=$(cat "$jobdir/job_id" 2>/dev/null || echo none)
+    if [ "$current" = running ] && { [ ! -f "$jobdir/pid" ] || ! kill -0 "$(cat "$jobdir/pid")" 2>/dev/null; }; then
+      current=failed; echo failed >"$jobdir/state"; rmdir "$jobdir/lock" 2>/dev/null || true
+    fi
+    printf 'state=%s\njob_id=%s\n' "$current" "$job_id"
+    echo '--LOG--'
+    tail -n 100 "$jobdir/log" 2>/dev/null | sed 's#//[^/@ ]*@#//[redacted]@#g' || true ;;
+  refresh_status)
+    invalidate_presence_cache
+    if installed luci-app-passwall2; then passwall_readiness_report >/dev/null 2>&1; fi
+    status ;;
+  *) echo 'Unsupported action' >&2; exit 2 ;;
+esac

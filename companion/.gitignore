@@ -1,0 +1,7 @@
+bin/
+obj/
+portable/
+router-settings.json
+portable-v2/
+portable-v3/
+releases/

@@ -1,0 +1,13 @@
+#!/bin/sh /etc/rc.common
+
+START=95
+STOP=10
+USE_PROCD=1
+
+start_service() {
+	state=$(uci -q get raywrt.system.package_indexes 2>/dev/null)
+	case "$state" in pending|initializing) ;; *) return 0 ;; esac
+	procd_open_instance
+	procd_set_param command /usr/libexec/raywrt-package-index-init
+	procd_close_instance
+}

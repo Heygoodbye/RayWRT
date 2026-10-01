@@ -1,0 +1,50 @@
+{
+  "luci-theme-raywrt": {
+    "description": "Read dashboard CPU, temperature and WAN counters",
+    "read": {
+      "file": {
+        "/proc/stat": [ "read" ],
+        "/sys/class/thermal": [ "list" ],
+        "/sys/class/thermal/thermal_zone*/type": [ "read" ],
+        "/sys/class/thermal/thermal_zone*/temp": [ "read" ],
+        "/usr/libexec/raywrt-tools status": [ "exec" ],
+        "/usr/libexec/raywrt-tools progress": [ "exec" ],
+        "/usr/libexec/raywrt-usage-control status": [ "exec" ],
+        "/usr/libexec/raywrt-device-usage-control status": [ "exec" ],
+        "/usr/libexec/raywrt-diagnostics run": [ "exec" ],
+        "/usr/libexec/raywrt-terminal status": [ "exec" ],
+        "/usr/libexec/raywrt-wireguard-split status": [ "exec" ],
+        "/usr/libexec/raywrt-wireguard-split progress": [ "exec" ],
+        "/sbin/ip -f inet neigh show": [ "exec" ],
+        "/sbin/ip -f inet6 neigh show": [ "exec" ]
+      },
+      "ubus": {
+        "network.interface": [ "status", "dump" ],
+        "network.device": [ "status" ],
+        "luci-rpc": [ "getDHCPLeases", "getHostHints" ],
+        "system": [ "board", "info" ],
+        "luci": [ "getUnixtime", "getMountPoints" ],
+        "network.wireless": [ "status" ],
+        "iwinfo": [ "assoclist" ],
+        "file": [ "exec", "list", "read" ]
+      }
+    },
+    "write": {
+      "file": {
+        "/usr/libexec/raywrt-tools install_passwall2": [ "exec" ],
+        "/usr/libexec/raywrt-tools preflight_passwall2": [ "exec" ],
+        "/usr/libexec/raywrt-tools refresh": [ "exec" ],
+        "/usr/libexec/raywrt-tools start *": [ "exec" ],
+        "/usr/libexec/raywrt-wireguard-split configure *": [ "exec" ],
+        "/usr/libexec/raywrt-wireguard-split enable": [ "exec" ],
+        "/usr/libexec/raywrt-wireguard-split disable": [ "exec" ],
+        "/usr/libexec/raywrt-wireguard-split refresh": [ "exec" ],
+        "/usr/libexec/raywrt-usage-control configure *": [ "exec" ],
+        "/usr/libexec/raywrt-usage-control clear": [ "exec" ],
+        "/usr/libexec/raywrt-terminal start": [ "exec" ],
+        "/usr/libexec/raywrt-diagnostics run": [ "exec" ]
+      },
+      "ubus": { "file": [ "exec" ], "system": [ "reboot" ] }
+    }
+  }
+}

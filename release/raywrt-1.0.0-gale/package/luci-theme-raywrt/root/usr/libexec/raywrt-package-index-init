@@ -1,0 +1,57 @@
+#!/bin/sh
+# Initialize package indexes once in the background after first boot.
+set -u
+umask 077
+config_dir=${RAYWRT_CONFIG_DIR:-/etc/config}
+repository_file=${RAYWRT_APK_REPOSITORIES:-/etc/apk/repositories.d/distfeeds.list}
+service=${RAYWRT_PACKAGE_INIT_SERVICE:-/etc/init.d/raywrt-package-index-init}
+uci() { command uci -c "$config_dir" "$@"; }
+log() { logger -t raywrt-package-index "$*"; }
+repository_ready() {
+	[ "$manager" = apk ] || return 0
+	repository=$(awk 'NF && $1 !~ /^#/ { print $1; exit }' "$repository_file" 2>/dev/null)
+	[ -n "$repository" ] && wget -q -T 20 -O /dev/null "$repository"
+}
+set_state() {
+	uci -q set "raywrt.system.package_indexes=$1"
+	uci -q commit raywrt
+}
+finish() {
+	state=$1
+	set_state "$state"
+	"$service" disable 2>/dev/null || true
+	log "package index initialization $state"
+}
+
+[ "$(uci -q get raywrt.system.package_indexes 2>/dev/null || true)" = pending ] ||
+[ "$(uci -q get raywrt.system.package_indexes 2>/dev/null || true)" = initializing ] || exit 0
+if ! command -v apk >/dev/null 2>&1; then
+	if command -v opkg >/dev/null 2>&1; then manager=opkg; else finish failed; exit 1; fi
+else manager=apk
+fi
+set_state initializing
+
+# Bounded retries keep this entirely off the boot path. Each update itself is
+# capped so missing WAN/DNS cannot leave a background package task stuck.
+attempt=1
+for delay in 30 60 120; do
+	log "checking package repositories (attempt $attempt/4)"
+	if repository_ready; then
+		if [ "$manager" = apk ]; then apk --timeout 20 update; else opkg update; fi
+		if [ "$?" -eq 0 ]; then finish ready; exit 0; fi
+	else
+		log 'WAN, DNS or the configured package repository is not reachable yet'
+	fi
+	log "repository update failed; retrying in ${delay}s"
+	sleep "$delay"
+	attempt=$((attempt + 1))
+done
+log 'checking package repositories (attempt 4/4)'
+if repository_ready; then
+	if [ "$manager" = apk ]; then apk --timeout 20 update; else opkg update; fi
+	if [ "$?" -eq 0 ]; then finish ready; exit 0; fi
+else
+	log 'WAN, DNS or the configured package repository is not reachable yet'
+fi
+finish failed
+exit 1

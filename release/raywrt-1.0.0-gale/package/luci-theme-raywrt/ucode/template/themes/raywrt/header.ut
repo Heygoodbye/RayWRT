@@ -1,0 +1,35 @@
+{% const boardinfo = ubus.call('system', 'board') ?? {};
+   http.prepare_content('text/html; charset=UTF-8'); -%}
+<!DOCTYPE html>
+<html lang="{{ dispatcher.lang }}" data-darkmode="true">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+ <meta name="darkreader-lock">
+ <title>{{ striptags(`${boardinfo.hostname ?? 'OpenWrt'}${dispatched?.title ? ` | ${_(dispatched.title)}` : ''}`) }}</title>
+ <link rel="stylesheet" href="{{ media }}/base.css">
+ <link rel="stylesheet" href="{{ media }}/raywrt.css?v=1.0.0-credit1">
+ <link rel="icon" href="{{ media }}/logo.svg" sizes="any">
+ {% if (dispatched?.css): %}<link rel="stylesheet" href="{{ resource }}/{{ dispatched.css }}">{% endif %}
+ {% if (css): %}<style>{{ css }}</style>{% endif %}
+ <script src="{{ dispatcher.build_url('admin/translations', dispatcher.lang) }}"></script>
+ <script src="{{ resource }}/cbi.js"></script>
+</head>
+<body class="lang_{{ dispatcher.lang }}" data-page="{{ entityencode(join('-', length(ctx.request_path) ? ctx.request_path : ctx.path), true) }}">
+{% if (!blank_page): %}
+ <header class="rw-sidebar">
+  <div class="rw-brand-row"><a class="rw-brand" href="{{ dispatcher.build_url('admin/raywrt') }}"><img class="rw-mark" src="{{ media }}/logo.svg" alt="" width="44" height="44"><span class="rw-brand-text"><strong>RayWRT</strong><small>Powered by OpenWrt</small></span></a></div>
+  <div class="rw-primary" aria-label="RayWRT home">
+   <a aria-label="Home" href="{{ dispatcher.build_url('admin/raywrt') }}"><span>⌂</span><b>Home</b></a>
+  </div>
+  <div class="rw-nav-heading">OPENWRT</div>
+  <nav aria-label="LuCI navigation"><ul id="modemenu" style="display:none"></ul><ul id="topmenu" style="display:none"></ul></nav>
+  <div class="rw-sidebar-footer"><div class="rw-version"><span>{{ version.distname }} {{ version.distversion }}</span><span>RayWRT 1.0.0</span><a class="rw-project-link" href="https://github.com/Heygoodbye/RayWRT" target="_blank" rel="noopener noreferrer">github.com/Heygoodbye/RayWRT ↗</a></div><button class="rw-collapse-toggle" type="button" aria-label="Collapse navigation" aria-expanded="true"><span aria-hidden="true">⇤</span><b>Collapse sidebar</b></button></div>
+ </header>
+ <div class="rw-shell">
+  <div class="rw-topbar"><button class="rw-mobile-toggle" type="button" aria-label="Open navigation" aria-expanded="false">☰</button><label class="rw-search-wrap"><span>⌕</span><input id="rw-search" type="search" placeholder="Search settings..." aria-label="Search settings" autocomplete="off"></label><div id="rw-search-results" role="listbox" hidden></div><span class="rw-top-user">● {{ ctx.authuser ?? 'User' }}</span></div>
+  <main id="maincontent" class="container">
+  {% if (boardinfo.rootfs_type == 'initramfs'): %}<div class="alert-message warning"><h4>{{ _('System running in recovery (initramfs) mode.') }}</h4></div>{% endif %}
+  <noscript><div class="alert-message warning">{{ _('JavaScript required!') }}</div></noscript>
+  <div id="tabmenu" style="display:none"></div>
+{% endif %}

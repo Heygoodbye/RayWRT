@@ -1,0 +1,8 @@
+RayWRT Companion 1.0.0 for Android
+Created by Heygoodbye — https://github.com/Heygoodbye
+
+Included open-source libraries:
+- JSch 2.28.7 (maintained mwiede fork): https://github.com/mwiede/jsch
+  See LICENSE.txt, LICENSE.JZlib.txt, and LICENSE.jBCrypt.txt.
+- Bouncy Castle 1.83: https://www.bouncycastle.org
+  See BOUNCY-CASTLE-LICENSE.txt.

@@ -1,0 +1,147 @@
+<Window x:Class="RayWRT.Companion.MainWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="RayWRT" Width="560" Height="996" MinWidth="480" MinHeight="480"
+ WindowStartupLocation="CenterScreen" Background="Transparent" AllowsTransparency="True"
+ Foreground="#EDF3F2" FontFamily="Segoe UI" FontSize="13" WindowStyle="None" ResizeMode="CanResizeWithGrip"
+ TextOptions.TextFormattingMode="Display" UseLayoutRounding="True">
+ <Window.Resources>
+  <Style x:Key="WifiSelector" TargetType="ComboBox">
+   <Setter Property="Foreground" Value="#EDF3F2"/><Setter Property="Background" Value="#111C1E"/>
+   <Setter Property="ItemContainerStyle"><Setter.Value><Style TargetType="ComboBoxItem"><Setter Property="Background" Value="#172423"/><Setter Property="Foreground" Value="#EDF3F2"/><Setter Property="Padding" Value="12,10"/><Style.Triggers><Trigger Property="IsHighlighted" Value="True"><Setter Property="Background" Value="#214333"/></Trigger></Style.Triggers></Style></Setter.Value></Setter>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox"><Grid>
+    <ToggleButton Focusable="False" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"><ToggleButton.Template><ControlTemplate TargetType="ToggleButton"><Border Background="#111C1E" BorderBrush="#2C3D3E" BorderThickness="1" CornerRadius="10" Padding="12,12"><TextBlock Text="⌄" Foreground="#9BCDB4" HorizontalAlignment="Right"/></Border></ControlTemplate></ToggleButton.Template></ToggleButton>
+    <ContentPresenter IsHitTestVisible="False" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" Margin="12,10,28,10" VerticalAlignment="Center"/>
+    <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True" Focusable="False"><Border Background="#172423" BorderBrush="#3B574A" BorderThickness="1" CornerRadius="8" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"><ScrollViewer MaxHeight="240"><ItemsPresenter/></ScrollViewer></Border></Popup>
+   </Grid></ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <SolidColorBrush x:Key="Muted" Color="#8C9DA6"/>
+  <SolidColorBrush x:Key="Accent" Color="#65E5B0"/>
+  <DrawingImage x:Key="BrandLogo"><DrawingImage.Drawing><DrawingGroup>
+   <GeometryDrawing Geometry="M32 5a27 27 0 0 0 0 54h2V40l16-12c-2-13-9-23-18-23Z"><GeometryDrawing.Brush><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#8DF1B3" Offset="0"/><GradientStop Color="#27BA79" Offset="1"/></LinearGradientBrush></GeometryDrawing.Brush></GeometryDrawing>
+   <GeometryDrawing Brush="#173A32" Geometry="M34 59a27 27 0 0 0 25-25c-10-3-19 0-25 6Z"/>
+  </DrawingGroup></DrawingImage.Drawing></DrawingImage>
+  <DrawingImage x:Key="WifiIcon"><DrawingImage.Drawing><GeometryDrawing Geometry="M2 8 C8 2 16 2 22 8 M6 12 C10 8 14 8 18 12 M10 16 C11 15 13 15 14 16 M12 20 L12.1 20"><GeometryDrawing.Pen><Pen Brush="#75DDA9" Thickness="1.8" StartLineCap="Round" EndLineCap="Round"/></GeometryDrawing.Pen></GeometryDrawing></DrawingImage.Drawing></DrawingImage>
+  <DrawingImage x:Key="RouterIcon"><DrawingImage.Drawing><GeometryDrawing Geometry="M4 13 L4 4 M20 13 L20 4 M3 13 L21 13 Q23 13 23 15 L23 20 Q23 22 21 22 L3 22 Q1 22 1 20 L1 15 Q1 13 3 13 M5 18 L6 18 M10 18 L11 18 M18 18 L20 18"><GeometryDrawing.Pen><Pen Brush="#93A9AC" Thickness="1.6" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/></GeometryDrawing.Pen></GeometryDrawing></DrawingImage.Drawing></DrawingImage>
+  <DrawingImage x:Key="GlobeIcon"><DrawingImage.Drawing><GeometryDrawing Geometry="M12 2 A10 10 0 1 0 12 22 A10 10 0 1 0 12 2 M2 12 L22 12 M12 2 C5 8 5 16 12 22 C19 16 19 8 12 2"><GeometryDrawing.Pen><Pen Brush="#68DFB0" Thickness="1.5" LineJoin="Round"/></GeometryDrawing.Pen></GeometryDrawing></DrawingImage.Drawing></DrawingImage>
+  <DrawingImage x:Key="ShieldIcon"><DrawingImage.Drawing><GeometryDrawing Geometry="M12 2 L21 6 L21 12 C21 17 17 21 12 23 C7 21 3 17 3 12 L3 6 Z"><GeometryDrawing.Pen><Pen Brush="#9CADB4" Thickness="1.5" LineJoin="Round"/></GeometryDrawing.Pen></GeometryDrawing></DrawingImage.Drawing></DrawingImage>
+  <DrawingImage x:Key="ServerIcon"><DrawingImage.Drawing><GeometryDrawing Geometry="M3 3 L21 3 Q22 3 22 4 L22 9 Q22 10 21 10 L3 10 Q2 10 2 9 L2 4 Q2 3 3 3 M3 14 L21 14 Q22 14 22 15 L22 20 Q22 21 21 21 L3 21 Q2 21 2 20 L2 15 Q2 14 3 14 M6 6.5 L8 6.5 M6 17.5 L8 17.5 M18 6.5 L18.1 6.5 M18 17.5 L18.1 17.5"><GeometryDrawing.Pen><Pen Brush="#9AB3B0" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/></GeometryDrawing.Pen></GeometryDrawing></DrawingImage.Drawing></DrawingImage>
+  <DrawingImage x:Key="HomeIcon"><DrawingImage.Drawing><GeometryDrawing Geometry="M2 11 L12 2 L22 11 M5 9 L5 22 L10 22 L10 15 L14 15 L14 22 L19 22 L19 9"><GeometryDrawing.Pen><Pen Brush="#9AB3B0" Thickness="1.5" StartLineCap="Round" LineJoin="Round"/></GeometryDrawing.Pen></GeometryDrawing></DrawingImage.Drawing></DrawingImage>
+  <DrawingImage x:Key="GameIcon"><DrawingImage.Drawing><GeometryDrawing Geometry="M7 6 L17 6 Q20 6 21 10 L23 18 Q23 22 20 20 L16 16 L8 16 L4 20 Q1 22 1 18 L3 10 Q4 6 7 6 M5 11 L11 11 M8 8 L8 14 M16 10 L16.1 10 M19 13 L19.1 13"><GeometryDrawing.Pen><Pen Brush="#9AB3B0" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/></GeometryDrawing.Pen></GeometryDrawing></DrawingImage.Drawing></DrawingImage>
+  <DrawingImage x:Key="EditIcon"><DrawingImage.Drawing><GeometryDrawing Geometry="M4 16 L3 21 L8 20 L21 7 L17 3 Z M14 6 L18 10"><GeometryDrawing.Pen><Pen Brush="#95AAA9" Thickness="1.7" LineJoin="Round"/></GeometryDrawing.Pen></GeometryDrawing></DrawingImage.Drawing></DrawingImage>
+  <DrawingImage x:Key="RefreshIcon"><DrawingImage.Drawing><GeometryDrawing Geometry="M20 8 A9 9 0 1 0 20 17 M20 2 L20 8 L14 8"><GeometryDrawing.Pen><Pen Brush="#9DB7B0" Thickness="1.6" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/></GeometryDrawing.Pen></GeometryDrawing></DrawingImage.Drawing></DrawingImage>
+  <Style TargetType="Button">
+   <Setter Property="Foreground" Value="#DBE7E4"/><Setter Property="Background" Value="#182423"/><Setter Property="BorderBrush" Value="#31423F"/>
+   <Setter Property="Padding" Value="15,10"/><Setter Property="Cursor" Value="Hand"/><Setter Property="FontWeight" Value="Medium"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+    <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="10">
+     <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    </Border>
+    <ControlTemplate.Triggers>
+     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="Background" Value="#244036"/><Setter TargetName="Chrome" Property="BorderBrush" Value="#538C75"/></Trigger>
+     <Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Opacity" Value="0.7"/></Trigger>
+     <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="#65E5B0"/></Trigger>
+     <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+    </ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style x:Key="QuietButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/></Style>
+  <Style TargetType="TextBox"><Setter Property="Background" Value="#111C1E"/><Setter Property="Foreground" Value="#EDF3F2"/><Setter Property="BorderBrush" Value="#2C3D3E"/><Setter Property="Padding" Value="13,10"/><Setter Property="FontSize" Value="15"/><Setter Property="CaretBrush" Value="#65E5B0"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox"><Border x:Name="Field" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="10"><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/></Border><ControlTemplate.Triggers><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Field" Property="BorderBrush" Value="#65E5B0"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style TargetType="PasswordBox"><Setter Property="Background" Value="#111C1E"/><Setter Property="Foreground" Value="#EDF3F2"/><Setter Property="BorderBrush" Value="#2C3D3E"/><Setter Property="Padding" Value="13,10"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="PasswordBox"><Border x:Name="Field" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="10"><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/></Border><ControlTemplate.Triggers><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Field" Property="BorderBrush" Value="#65E5B0"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style x:Key="Section" TargetType="Border"><Setter Property="Background" Value="#AD121C20"/><Setter Property="BorderBrush" Value="#283735"/><Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="18"/><Setter Property="Padding" Value="18"/></Style>
+  <Style x:Key="ServiceToggle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+   <StackPanel HorizontalAlignment="Center"><Grid Width="46" Height="26"><Border x:Name="Track" CornerRadius="13" Background="#29383B" BorderBrush="#425154" BorderThickness="1"/><Ellipse x:Name="Thumb" Width="18" Height="18" Fill="#B0BEC3" HorizontalAlignment="Left" Margin="4"/></Grid><ContentPresenter HorizontalAlignment="Center" Margin="0,6,0,0" TextElement.FontSize="11" TextElement.Foreground="#9CB3AE"/></StackPanel>
+   <ControlTemplate.Triggers><Trigger Property="Content" Value="Enabled"><Setter TargetName="Track" Property="Background" Value="#277553"/><Setter TargetName="Track" Property="BorderBrush" Value="#5ADC9E"/><Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/><Setter TargetName="Thumb" Property="Fill" Value="#DBFCEF"/></Trigger><Trigger Property="IsMouseOver" Value="True"><Setter Property="Opacity" Value="0.85"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger></ControlTemplate.Triggers>
+  </ControlTemplate></Setter.Value></Setter></Style>
+ </Window.Resources>
+ <Border x:Name="WindowSurface" BorderThickness="0" CornerRadius="18">
+  <Border.Background><RadialGradientBrush Center="0.9,0" RadiusX="1.2" RadiusY="0.7"><GradientStop Color="#163329" Offset="0"/><GradientStop Color="#0B1117" Offset="0.65"/></RadialGradientBrush></Border.Background>
+  <Grid x:Name="WindowContent" SizeChanged="UpdateWindowClip">
+   <Grid.RowDefinitions><RowDefinition Height="82"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+   <Grid x:Name="TitleBar" Background="Transparent" MouseLeftButtonDown="DragHeader">
+    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="26,0,0,0">
+     <Image x:Name="Logo" Source="{StaticResource BrandLogo}" Width="39" Height="39" Margin="0,0,13,0"/>
+     <StackPanel VerticalAlignment="Center"><TextBlock FontSize="20"><Run Text="RayWRT" FontWeight="SemiBold"/></TextBlock><TextBlock Text="Router Configure" FontSize="9" Foreground="#77998B" Margin="1,5,0,0"/></StackPanel>
+    </StackPanel>
+    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,10,15,0">
+     <Button Content="─" Click="Minimize" Padding="10,5" Style="{StaticResource QuietButton}" ToolTip="Minimize" AutomationProperties.Name="Minimize"/>
+     <Button Content="□" Click="Maximize" Padding="10,5" Style="{StaticResource QuietButton}" ToolTip="Maximize or restore" AutomationProperties.Name="Maximize or restore"/>
+     <Button Content="✕" Click="Exit" Padding="10,5" Style="{StaticResource QuietButton}" ToolTip="Close" AutomationProperties.Name="Close"/>
+    </StackPanel>
+   </Grid>
+   <ScrollViewer x:Name="ContentScroll" Grid.Row="1" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly" Focusable="True">
+    <StackPanel x:Name="BodyContent" Margin="24,0,24,8" MaxWidth="600">
+     <Border Style="{StaticResource Section}" Padding="17,16">
+      <StackPanel><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <Image Source="{StaticResource RouterIcon}" Width="25" Height="25" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+       <StackPanel Grid.Column="1">
+        <Grid Margin="0,0,0,7"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+         <TextBlock Text="Router IP" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
+         <StackPanel x:Name="RouterStateBadge" Grid.Column="1" Orientation="Horizontal" ToolTip="SSH disconnected" AutomationProperties.Name="Router disconnected">
+          <Grid Width="18" Height="16" Margin="0,0,4,0">
+           <Ellipse x:Name="ConnectionHalo" Width="16" Height="16" Fill="#EB7D88" Opacity="0.05"/>
+           <Ellipse x:Name="ConnectionDot" Width="6" Height="6" Fill="#EB7D88" Opacity="0.8"/>
+          </Grid>
+          <TextBlock x:Name="RouterStateText" Text="Disconnected" FontSize="10" Foreground="#9EAAA6" VerticalAlignment="Center"/>
+         </StackPanel>
+        </Grid>
+        <Grid><TextBox x:Name="Host" Text="192.168.1.1" Padding="12,9,36,9"/><Button x:Name="EditHost" Click="EditHostClick" Style="{StaticResource QuietButton}" HorizontalAlignment="Right" Width="32" Margin="3" Padding="7" ToolTip="Edit router address" AutomationProperties.Name="Edit router address"><Image Source="{StaticResource EditIcon}" Width="14" Height="14"/></Button></Grid>
+       </StackPanel>
+       <Button x:Name="Connection" Grid.Column="2" Content="Connect" Margin="12,21,0,0" Padding="14,10" Click="ConnectClick" ToolTip="Connect or disconnect from router" Background="#193F30" BorderBrush="#356B50" Foreground="#8EE8BA"/>
+      </Grid>
+      <StackPanel x:Name="LoginPanel" Margin="0,16,0,0"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+       <StackPanel Margin="0,0,6,0"><TextBlock Text="SSH username" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,0,0,7"/><TextBox x:Name="Username" Text="root" FontSize="13"/></StackPanel>
+       <StackPanel Grid.Column="1" Margin="6,0,0,0"><TextBlock Text="SSH password" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,0,0,7"/><PasswordBox x:Name="Password"/></StackPanel>
+      </Grid><TextBlock Text="Your password is never saved." FontSize="11" Foreground="#738B83" Margin="0,11,0,0"/></StackPanel>
+     </StackPanel></Border>
+     <Border Background="#101A1C" BorderBrush="#283735" BorderThickness="1" CornerRadius="13" Padding="4" Margin="0,18,0,18"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+      <Button x:Name="PassTab" Click="PassTabClick" Background="#214333" BorderBrush="#416B50" Padding="13,10"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource GlobeIcon}" Width="16" Height="16" Margin="0,0,9,0"/><TextBlock Text="Passwall 2"/></StackPanel></Button>
+      <Button x:Name="WireTab" Grid.Column="1" Click="WireTabClick" Style="{StaticResource QuietButton}" Margin="4,0,0,0" Padding="13,10"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource ShieldIcon}" Width="15" Height="17" Margin="0,0,9,0"/><TextBlock Text="WireGuard"/></StackPanel></Button>
+     </Grid></Border>
+     <Border x:Name="PassPanel" Style="{StaticResource Section}"><StackPanel>
+      <Grid Margin="0,0,0,19"><Grid.ColumnDefinitions><ColumnDefinition Width="43"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <Border Width="32" Height="32" CornerRadius="10" Background="#19352B" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="7"><Image Source="{StaticResource GlobeIcon}"/></Border>
+       <StackPanel Grid.Column="1"><TextBlock Text="Passwall 2" FontSize="21" FontWeight="SemiBold"/><TextBlock Text="Manage your Passwall 2 configurations" TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,6,0,0"/></StackPanel>
+       <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"><Button x:Name="AddNode" IsEnabled="False" Content="＋ Add" Click="AddNodeClick" Height="26" VerticalAlignment="Top" Background="#214D37" BorderBrush="#428963" Foreground="#B5F1CE" Padding="9,0" FontSize="11" ToolTip="Add node or subscription"/><Button x:Name="Toggle" Style="{StaticResource ServiceToggle}" Content="Disabled" Click="ToggleClick" VerticalAlignment="Center" Margin="10,0,0,0" ToolTip="Enable or disable Passwall 2" AutomationProperties.Name="Enable or disable Passwall 2"/></StackPanel>
+      </Grid><StackPanel x:Name="Nodes"/><StackPanel x:Name="Subscriptions"/>
+     </StackPanel></Border>
+     <Border x:Name="WirePanel" Style="{StaticResource Section}" Margin="0,16,0,0"><StackPanel>
+      <Grid Margin="0,0,0,19"><Grid.ColumnDefinitions><ColumnDefinition Width="43"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <Border Width="32" Height="32" CornerRadius="10" Background="#1C2B2D" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="7"><Image Source="{StaticResource ShieldIcon}"/></Border>
+       <StackPanel Grid.Column="1"><TextBlock Text="WireGuard" FontSize="21" FontWeight="SemiBold"/><TextBlock Text="Manage your WireGuard tunnels" TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,6,0,0"/></StackPanel>
+       <Button x:Name="ImportWireGuard" Grid.Column="2" Content="＋ Import" Click="ImportWireGuardClick" IsEnabled="False" Height="30" VerticalAlignment="Top" Background="#214D37" BorderBrush="#428963" Foreground="#B5F1CE" Padding="9,0" FontSize="11"/>
+      </Grid><StackPanel x:Name="Tunnels"/>
+     </StackPanel></Border>
+    </StackPanel>
+   </ScrollViewer>
+   <Border Grid.Row="2" Background="#E00C1418" BorderBrush="#25332F" BorderThickness="0,1,0,0"><Grid Margin="24,10,24,10"><Grid.RowDefinitions><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <Grid x:Name="FooterControls">
+     <Button Click="RefreshClick" Style="{StaticResource QuietButton}" HorizontalAlignment="Left" Padding="0,3" ToolTip="Reload router state"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource RefreshIcon}" Width="13" Height="13" Margin="0,0,7,0"/><TextBlock Text="Refresh" FontSize="11"/></StackPanel></Button>
+    </Grid><TextBlock x:Name="Status" Grid.Row="1" Text="Enter your router login." Foreground="#A4BBB0" FontSize="13" FontWeight="Medium" Margin="0,6,0,0" TextWrapping="Wrap" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+    <Grid Grid.Row="2" Margin="0,9,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+     <TextBlock FontSize="11" Foreground="#789087"><Run Text="Made by "/><Hyperlink x:Name="AuthorLink" NavigateUri="https://github.com/Heygoodbye" RequestNavigate="AuthorLinkNavigate" Foreground="#9BCDB4" TextDecorations="None" ToolTip="github.com/Heygoodbye">Heygoodbye ↗</Hyperlink></TextBlock>
+     <TextBlock Grid.Column="1" Text="v1" FontSize="10" Foreground="#789087" VerticalAlignment="Center"/>
+    </Grid>
+   </Grid></Border>
+  </Grid>
+ </Border>
+</Window>
+
+
+
+
+
+
+
+
+
+
+
+
+
+

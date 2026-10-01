@@ -1,0 +1,54 @@
+#!/bin/sh
+# Apply the supported Gale WAN DNS default once on a clean installation.
+# Old RayWRT configs have no pending marker and are intentionally left alone.
+config_dir=${RAYWRT_CONFIG_DIR:-/etc/config}
+uci() { command uci -c "$config_dir" "$@"; }
+
+state=$(uci -q get raywrt.system.dns_default 2>/dev/null || true)
+[ "$state" = pending ] || exit 0
+
+mark_done() {
+	uci set raywrt.system.dns_default="$1" || return 1
+	uci commit raywrt
+}
+
+# The preceding Wi-Fi first-run helper marks this only after normalizing stock
+# AP names. It keeps this network default away from customized installations.
+[ "$(uci -q get raywrt.system.wifi_default 2>/dev/null || true)" = applied ] || {
+	mark_done preserved
+	exit 0
+}
+
+# Only apply to the stock DHCP WAN defaults. Leave PPP, static WAN, custom DNS,
+# and any explicit peer-DNS choice untouched. The separate wan6 section is not
+# read or changed, so DHCPv6 and IPv6 DNS remain under the user's control.
+[ "$(uci -q get network.wan.proto 2>/dev/null || true)" = dhcp ] || {
+	mark_done preserved
+	exit 0
+}
+
+peerdns=$(uci -q get network.wan.peerdns 2>/dev/null || true)
+case "$peerdns" in ''|1) ;; *) mark_done preserved; exit 0;; esac
+
+custom_dns=$(uci -q show network.wan 2>/dev/null | sed -n 's/^network\.wan\.dns=//p')
+[ -z "$custom_dns" ] || { mark_done preserved; exit 0; }
+
+uci set network.wan.peerdns='0' || { mark_done failed; exit 0; }
+uci add_list network.wan.dns='1.1.1.1' || { uci revert network; mark_done failed; exit 0; }
+uci add_list network.wan.dns='1.0.0.1' || { uci revert network; mark_done failed; exit 0; }
+uci commit network || { uci revert network; mark_done failed; exit 0; }
+
+# Verify persisted values before marking the one-time operation complete.
+actual_peer=$(uci -q get network.wan.peerdns 2>/dev/null || true)
+actual_dns=$(uci -q show network.wan 2>/dev/null | sed -n 's/^network\.wan\.dns=//p')
+dns_dump=$(uci -q show network.wan 2>/dev/null || true)
+dns_primary=$(printf '%s\n' "$dns_dump" | grep -Fxc "network.wan.dns='1.1.1.1'" || true)
+dns_secondary=$(printf '%s\n' "$dns_dump" | grep -Fxc "network.wan.dns='1.0.0.1'" || true)
+if [ "$actual_peer" = 0 ] && [ "$dns_primary" = 1 ] && [ "$dns_secondary" = 1 ] &&
+   [ "$(printf '%s\n' "$actual_dns" | wc -l)" -eq 2 ]; then
+	mark_done applied
+else
+	mark_done failed
+fi
+
+exit 0

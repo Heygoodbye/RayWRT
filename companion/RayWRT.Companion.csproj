@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType><AssemblyName>RayWRT</AssemblyName>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <ApplicationIcon>Assets/RayWRT.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>1.0.3</Version>
+    <AssemblyVersion>1.0.3.0</AssemblyVersion>
+    <FileVersion>1.0.3.0</FileVersion>
+    <Authors>Heygoodbye</Authors>
+    <Company>Heygoodbye</Company>
+    <Product>RayWRT</Product>
+    <Description>Portable router companion by Heygoodbye — https://github.com/Heygoodbye</Description>
+    <RepositoryUrl>https://github.com/Heygoodbye</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="diagnostics.sh" LogicalName="RayWRT.Diagnostics" />
+    <EmbeddedResource Include="node-import.lua" LogicalName="RayWRT.NodeImport" />
+    <EmbeddedResource Include="wireguard-control.sh" LogicalName="RayWRT.WireGuardControl" />
+    <PackageReference Include="SSH.NET" Version="2026.0.0" />
+  </ItemGroup>
+
+</Project>
+
+
+
+
+
+
+
+
+

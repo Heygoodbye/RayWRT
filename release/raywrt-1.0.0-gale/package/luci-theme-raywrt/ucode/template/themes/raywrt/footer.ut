@@ -1,0 +1,16 @@
+<script>if (window.L) L.env.resource_version += '-raywrt-1.0.0-credit1';</script>
+{% if (!blank_page): %}
+  </main>
+  <footer class="rw-footer">RayWRT 1.0.0 · {{ version.luciname }} {{ version.luciversion }} · {{ version.distname }} {{ version.distversion }} · Made by <a href="https://github.com/Heygoodbye/RayWRT" target="_blank" rel="noopener noreferrer">HeyGoodbye</a></footer>
+ </div>
+ <nav class="rw-bottom-nav" aria-label="Quick navigation">
+  <a aria-label="Home" href="{{ dispatcher.build_url('admin/raywrt') }}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 10 8.5-7 8.5 7v10a1 1 0 0 1-1 1h-5v-7h-5v7h-5a1 1 0 0 1-1-1z"/></svg><span>Home</span></a>
+  <a aria-label="Tools" href="{{ dispatcher.build_url('admin/raywrt-tools') }}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 14 9l6.2 2-6.2 2-2 6.2L10 13l-6.2-2L10 9z"/><path d="m19 15 .9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg><span>Tools</span></a>
+  <a aria-label="Passwall" href="{{ dispatcher.build_url('admin/raywrt-tools/passwall2') }}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5.5c0 4.8-3.3 7.7-8 9.5-4.7-1.8-8-4.7-8-9.5V6z"/><path d="M8.5 12h7M12 8.5v7"/></svg><span>Passwall</span></a>
+  <a aria-label="Terminal" href="{{ dispatcher.build_url('admin/raywrt-tools/terminal') }}"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7.5 9 3 3-3 3M13.5 15h3"/></svg><span>Terminal</span></a>
+  <button class="rw-more-toggle" type="button" aria-label="More navigation" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg><span>More</span></button>
+ </nav>
+ <script>L.require('menu-raywrt-v5')</script>
+{% endif %}
+</body>
+</html>

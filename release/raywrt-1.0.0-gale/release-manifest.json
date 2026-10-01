@@ -1,0 +1,19 @@
+{
+  "release_name": "RayWRT",
+  "raywrt_version": "1.0.0",
+  "release_channel": "public",
+  "source_status": "frozen_candidate",
+  "release_status": "public_prerelease",
+  "user_acceptance": "pending_for_replacement_image",
+  "image_validation": "build_artifact_verified",
+  "clean_sysupgrade_validation": "pending",
+  "public_release_status": "not_yet_validated",
+  "openwrt_version": "25.12.5",
+  "openwrt_revision": "r33051-f5dae5ece4",
+  "target": "ipq40xx/chromium",
+  "profile": "google_wifi",
+  "supported_device": "google,wifi",
+  "image_filename": "raywrt-1.0.0-gale-sysupgrade.bin",
+  "image_size_bytes": 9513501,
+  "image_sha256": "402839d3411635a7d2ad8c3c809b14f61fa387c63adf0802c4beff591233b946"
+}

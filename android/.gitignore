@@ -1,0 +1,6 @@
+.tools/
+.build/
+.signing/
+libs/
+local.properties
+releases/*.apk

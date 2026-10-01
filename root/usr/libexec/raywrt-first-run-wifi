@@ -1,0 +1,125 @@
+#!/bin/sh
+# Provision Gale APs once, after wireless configuration is ready.
+config_dir=${RAYWRT_CONFIG_DIR:-/etc/config}
+uci() { command uci -c "$config_dir" "$@"; }
+
+finish() {
+	state=$1
+	uci set raywrt.system=system || return 1
+	uci set raywrt.system.initialized=1 || return 1
+	uci set "raywrt.system.wifi_default=$state" || return 1
+	uci commit raywrt
+}
+
+restore_wireless() {
+	backup=$1
+	restore="$config_dir/.wireless.raywrt-rollback.$$"
+	if cp "$backup" "$restore" && chmod 600 "$restore" && mv -f "$restore" "$config_dir/wireless"; then
+		uci revert wireless 2>/dev/null || true
+		wifi reload >/dev/null 2>&1 || true
+		rm -f "$backup"
+	else
+		rm -f "$restore" "$backup"
+		echo 'RayWRT Wi-Fi: rollback failed; the wireless config backup remains unavailable.'
+	fi
+}
+
+verify_provisioning() {
+	for radio in $two_ghz $five_ghz; do
+		[ -n "$radio" ] || continue
+		[ "$(uci -q get "wireless.$radio.disabled" 2>/dev/null || true)" != 1 ] || return 1
+		verified=
+		for section in $(uci -q show wireless | sed -n "s/^wireless\\.\\([^.=]*\\)=wifi-iface$/\\1/p"); do
+			[ "$(uci -q get "wireless.$section.device" 2>/dev/null || true)" = "$radio" ] || continue
+			[ "$(uci -q get "wireless.$section.mode" 2>/dev/null || true)" = ap ] || continue
+			[ "$(uci -q get "wireless.$section.ssid" 2>/dev/null || true)" = RayWRT ] || continue
+			[ "$(uci -q get "wireless.$section.network" 2>/dev/null || true)" = lan ] || continue
+			[ "$(uci -q get "wireless.$section.disabled" 2>/dev/null || true)" != 1 ] || continue
+			verified=yes
+		done
+		[ "$verified" = yes ] || return 1
+	done
+}
+
+provision_once() {
+	[ "$(uci -q get raywrt.system.wifi_default 2>/dev/null || true)" = pending ] || return 0
+	[ -r "$config_dir/wireless" ] || { echo 'RayWRT Wi-Fi: wireless UCI is not ready yet.'; return 1; }
+
+	# OpenWrt 25.12 records band capability on wifi-device sections. Never
+	# infer band from section names or their order.
+	two_ghz=
+	five_ghz=
+	for radio in $(uci -q show wireless | sed -n "s/^wireless\\.\\([^.=]*\\)=wifi-device$/\\1/p"); do
+		band=$(uci -q get "wireless.$radio.band" 2>/dev/null || true)
+		hwmode=$(uci -q get "wireless.$radio.hwmode" 2>/dev/null || true)
+		case "$band:$hwmode" in
+			2g:*|2.4g:*|2ghz:*|2.4ghz:*|*:11g|*:11ng) two_ghz="$two_ghz $radio" ;;
+			5g:*|5ghz:*|*:11a|*:11na|*:11ac) five_ghz="$five_ghz $radio" ;;
+		esac
+	done
+	[ -n "$two_ghz$five_ghz" ] || { echo 'RayWRT Wi-Fi: waiting for supported 2.4/5 GHz radio capabilities.'; return 1; }
+
+	# Any non-stock AP SSID means this config contains a user's choices. Leave it
+	# intact rather than partially rewriting a customized wireless setup.
+	for section in $(uci -q show wireless | sed -n "s/^wireless\\.\\([^.=]*\\)=wifi-iface$/\\1/p"); do
+		[ "$(uci -q get "wireless.$section.mode" 2>/dev/null || true)" = ap ] || continue
+		ssid=$(uci -q get "wireless.$section.ssid" 2>/dev/null || true)
+		case "$ssid" in ''|OpenWrt|RayWRT) ;; *) finish preserved && echo 'RayWRT Wi-Fi: preserved customized AP settings.'; return $? ;; esac
+	done
+
+	backup=$(mktemp /tmp/raywrt-wireless.XXXXXX) || return 1
+	cp "$config_dir/wireless" "$backup" || { rm -f "$backup"; return 1; }
+	for radio in $two_ghz $five_ghz; do
+		[ -n "$radio" ] || continue
+		uci set "wireless.$radio.disabled=0" || { uci revert wireless; rm -f "$backup"; return 1; }
+		found_ap=
+		for section in $(uci -q show wireless | sed -n "s/^wireless\\.\\([^.=]*\\)=wifi-iface$/\\1/p"); do
+			[ "$(uci -q get "wireless.$section.device" 2>/dev/null || true)" = "$radio" ] || continue
+			[ "$(uci -q get "wireless.$section.mode" 2>/dev/null || true)" = ap ] || continue
+			found_ap=yes
+			uci set "wireless.$section.ssid=RayWRT" || { uci revert wireless; rm -f "$backup"; return 1; }
+			uci set "wireless.$section.network=lan" || { uci revert wireless; rm -f "$backup"; return 1; }
+			uci set "wireless.$section.disabled=0" || { uci revert wireless; rm -f "$backup"; return 1; }
+		done
+		if [ -z "$found_ap" ]; then
+			section=$(uci add wireless wifi-iface) || { uci revert wireless; rm -f "$backup"; return 1; }
+			uci set "wireless.$section.device=$radio" || { uci revert wireless; rm -f "$backup"; return 1; }
+			uci set "wireless.$section.mode=ap" || { uci revert wireless; rm -f "$backup"; return 1; }
+			uci set "wireless.$section.network=lan" || { uci revert wireless; rm -f "$backup"; return 1; }
+			uci set "wireless.$section.ssid=RayWRT" || { uci revert wireless; rm -f "$backup"; return 1; }
+			uci set "wireless.$section.disabled=0" || { uci revert wireless; rm -f "$backup"; return 1; }
+		fi
+	done
+	if ! uci commit wireless || ! wifi reload >/dev/null 2>&1 || ! verify_provisioning; then
+		restore_wireless "$backup"
+		echo 'RayWRT Wi-Fi: apply or verification failed; first-run marker remains pending.'
+		return 1
+	fi
+	rm -f "$backup"
+	finish applied || return 1
+	echo 'RayWRT Wi-Fi: verified supported radios and RayWRT LAN APs before marking first run complete.'
+}
+
+run() {
+	if [ "${1:-}" != --wait ]; then
+		provision_once
+		return $?
+	fi
+	max=${RAYWRT_WIFI_RETRIES:-12}
+	delay=${RAYWRT_WIFI_RETRY_DELAY:-10}
+	attempt=1
+	while [ "$attempt" -le "$max" ]; do
+		if provision_once; then return 0; fi
+		[ "$(uci -q get raywrt.system.wifi_default 2>/dev/null || true)" = pending ] || return 1
+		if [ "$attempt" -ge "$max" ]; then
+			finish failed || true
+			echo "RayWRT Wi-Fi: first-run provisioning stopped after $max attempts; marker set to failed."
+			return 1
+		fi
+		echo "RayWRT Wi-Fi: retrying after $delay seconds ($attempt/$max)."
+		sleep "$delay"
+		attempt=$((attempt + 1))
+	done
+}
+
+run "${1:-}"

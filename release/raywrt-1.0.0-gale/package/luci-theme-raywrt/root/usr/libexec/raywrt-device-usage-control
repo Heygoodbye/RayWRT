@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+umask 077
+db=/etc/raywrt-device-usage.csv
+meta=/tmp/raywrt-device-meta.csv
+totals=/tmp/raywrt-device-usage-today.csv
+case "${1:-}" in
+  status)
+    db_bytes=0; meta_bytes=0
+    [ ! -f "$db" ] || db_bytes=$(wc -c <"$db")
+    [ ! -f /etc/raywrt-device-meta.csv ] || meta_bytes=$(wc -c </etc/raywrt-device-meta.csv)
+    printf 'date=%s\ndatabase_bytes=%s\nmetadata_bytes=%s\n' "$(date +%F)" "$db_bytes" "$meta_bytes"
+    echo '--TODAY--'; [ ! -f "$totals" ] || cat "$totals"
+    echo '--HISTORY--'; [ ! -f "$db" ] || cat "$db"
+    echo '--META--'; [ ! -f "$meta" ] || cat "$meta"
+    ;;
+  *) exit 2;;
+esac

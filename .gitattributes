@@ -1,0 +1,8 @@
+# Keep frozen package bytes unchanged: SOURCE-MANIFEST checks exact file hashes.
+release/** -text
+
+*.png binary
+*.ico binary
+*.sh text eol=lf
+*.ut text eol=lf
+*.sha256 text eol=lf

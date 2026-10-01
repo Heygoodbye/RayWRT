@@ -1,0 +1,11 @@
+config usage 'usage'
+	option enabled '1'
+	option retention '30'
+	option save_minutes '30'
+
+config system 'system'
+	option initialized '0'
+	option wifi_default 'pending'
+	option dns_default 'pending'
+	option theme_default 'pending'
+	option package_indexes 'pending'

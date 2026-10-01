@@ -1,0 +1,79 @@
+#!/bin/sh
+set -eu
+umask 077
+db=/etc/raywrt-usage.csv
+state=/tmp/raywrt-usage.state
+case "${1:-}" in
+  status)
+    wan_device=$(ip -4 route show default 2>/dev/null | awk 'NR==1 {for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}')
+    [ -n "$wan_device" ] || wan_device=$(ip -6 route show default 2>/dev/null | awk 'NR==1 {for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}')
+    logical_wan=unknown underlying_device=unknown
+    if [ -n "$wan_device" ] && command -v jsonfilter >/dev/null 2>&1; then
+      network_dump=$(ubus call network.interface dump 2>/dev/null || true)
+      logical_wan=$(printf '%s' "$network_dump" | jsonfilter -e "@.interface[@.l3_device=\"$wan_device\"].interface" 2>/dev/null | head -n 1)
+      underlying_device=$(printf '%s' "$network_dump" | jsonfilter -e "@.interface[@.l3_device=\"$wan_device\"].device" 2>/dev/null | head -n 1)
+    fi
+    [ -n "$logical_wan" ] || logical_wan=unknown
+    [ -n "$underlying_device" ] || underlying_device=unknown
+    current_rx= current_tx=
+    if [ -n "$wan_device" ] && [ -r "/sys/class/net/$wan_device/statistics/rx_bytes" ]; then
+      current_rx=$(cat "/sys/class/net/$wan_device/statistics/rx_bytes")
+      current_tx=$(cat "/sys/class/net/$wan_device/statistics/tx_bytes")
+    fi
+    printf 'enabled=%s\nretention=%s\nsave_minutes=%s\n' \
+      "$(uci -q get raywrt.usage.enabled || echo 1)" \
+      "$(uci -q get raywrt.usage.retention || echo 30)" \
+      "$(uci -q get raywrt.usage.save_minutes || echo 30)"
+    if [ -f "$state" ]; then cat "$state"; else printf 'date=%s\ndownload=0\nupload=0\n' "$(date +%F)"; fi
+    if [ -f "$db" ]; then
+      printf 'stored_days=%s\ndatabase_bytes=%s\n' "$(wc -l <"$db")" "$(wc -c <"$db")"
+    else
+      printf 'stored_days=0\ndatabase_bytes=0\n'
+    fi
+    if [ -f /etc/raywrt-device-usage.csv ]; then printf 'device_database_bytes=%s\n' "$(wc -c </etc/raywrt-device-usage.csv)"; else echo 'device_database_bytes=0'; fi
+    saved=$(sed -n 's/^last_saved=//p' "$state" 2>/dev/null | head -n 1)
+    next=$(sed -n 's/^next_save=//p' "$state" 2>/dev/null | head -n 1)
+    [ -z "$saved" ] || printf 'last_saved_local=%s\n' "$(date -d "@$saved" '+%F %H:%M %Z')"
+    [ -z "$next" ] || printf 'next_save_local=%s\n' "$(date -d "@$next" '+%F %H:%M %Z')"
+    printf 'logical_wan=%s\nwan_device=%s\nunderlying_device=%s\ncurrent_rx=%s\ncurrent_tx=%s\nbaseline_rx=%s\nbaseline_tx=%s\nrouter_time=%s\n' \
+      "$logical_wan" "${wan_device:-unavailable}" "$underlying_device" "${current_rx:-unavailable}" "${current_tx:-unavailable}" \
+      "$(sed -n 's/^previous_rx=//p' "$state" 2>/dev/null | head -n 1)" \
+      "$(sed -n 's/^previous_tx=//p' "$state" 2>/dev/null | head -n 1)" "$(date '+%F %T %Z')"
+    total_recorded=$(awk -F, -v d="$(date +%F)" -v cd="$(sed -n 's/^download=//p' "$state" 2>/dev/null | head -n 1)" -v cu="$(sed -n 's/^upload=//p' "$state" 2>/dev/null | head -n 1)" 'NF==3 && $1 ~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/ { if($1==d) {sum+=cd+cu;seen=1} else sum+=$2+$3 } END {if(!seen)sum+=cd+cu;printf "%.0f",sum}' "$db" 2>/dev/null)
+    printf 'total_recorded=%s\n' "${total_recorded:-0}"
+    device_today_total=$(awk -F, '{s+=$2+$3} END{printf "%.0f",s}' /tmp/raywrt-device-usage-today.csv 2>/dev/null)
+    current_today_total=$(awk -v d="$(sed -n 's/^download=//p' "$state" 2>/dev/null | head -n 1)" -v u="$(sed -n 's/^upload=//p' "$state" 2>/dev/null | head -n 1)" 'BEGIN{printf "%.0f",d+u}')
+    anomaly=none
+    if [ "${device_today_total:-0}" -gt 100000000 ] 2>/dev/null && [ "${device_today_total:-0}" -gt "$((current_today_total * 2))" ] 2>/dev/null; then anomaly=device_total_exceeds_wan; fi
+    printf 'device_today_total=%s\nusage_anomaly=%s\n' "${device_today_total:-0}" "$anomaly"
+    anomaly_marker=/tmp/raywrt-usage-anomaly
+    if [ "$anomaly" != none ]; then
+      if [ "$(cat "$anomaly_marker" 2>/dev/null)" != "$(date +%F)" ]; then logger -t raywrt-usage "Per-device total (${device_today_total:-0} bytes) is more than twice WAN total (${current_today_total} bytes)"; echo "$(date +%F)" >"$anomaly_marker"; fi
+    else rm -f "$anomaly_marker"; fi
+    echo '--HISTORY--'
+    [ ! -f "$db" ] || tail -n 366 "$db"
+    ;;
+  configure)
+    enabled=${2:-}; retention=${3:-}; interval=${4:-}
+    case "$enabled" in 0|1) ;; *) exit 2;; esac
+    case "$retention" in 1|3|7|14|30|60|90|180|365|never) ;; *) exit 2;; esac
+    case "$interval" in 15|30|60) ;; *) exit 2;; esac
+    uci set raywrt.usage.enabled="$enabled"
+    uci set raywrt.usage.retention="$retention"
+    uci set raywrt.usage.save_minutes="$interval"
+    uci commit raywrt
+    /etc/init.d/raywrt-usage restart
+    [ ! -x /etc/init.d/raywrt-device-usage ] || /etc/init.d/raywrt-device-usage restart
+    echo configured
+    ;;
+  clear)
+    /etc/init.d/raywrt-usage stop
+    [ ! -x /etc/init.d/raywrt-device-usage ] || /etc/init.d/raywrt-device-usage stop
+    rm -f "$db" "$state"
+    rm -f /etc/raywrt-device-usage.csv /etc/raywrt-device-meta.csv /tmp/raywrt-device-usage-today.csv /tmp/raywrt-device-meta.csv /tmp/raywrt-device-usage-stamp
+    /etc/init.d/raywrt-usage start
+    [ ! -x /etc/init.d/raywrt-device-usage ] || /etc/init.d/raywrt-device-usage start
+    echo cleared
+    ;;
+  *) exit 2;;
+esac

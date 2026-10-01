@@ -1,0 +1,29 @@
+#!/bin/sh
+chmod 755 /usr/libexec/raywrt-tools 2>/dev/null
+chmod 755 /usr/libexec/raywrt-usage /usr/libexec/raywrt-usage-control /etc/init.d/raywrt-usage 2>/dev/null
+chmod 755 /usr/libexec/raywrt-device-usage /usr/libexec/raywrt-device-usage-control /etc/init.d/raywrt-device-usage 2>/dev/null
+chmod 755 /usr/libexec/raywrt-terminal /usr/libexec/raywrt-terminal-shell 2>/dev/null
+/etc/init.d/raywrt-usage enable 2>/dev/null
+/etc/init.d/raywrt-usage start 2>/dev/null
+/etc/init.d/raywrt-device-usage enable 2>/dev/null
+/etc/init.d/raywrt-device-usage start 2>/dev/null
+chmod 755 /usr/libexec/raywrt-package-index-init /etc/init.d/raywrt-package-index-init 2>/dev/null
+/etc/init.d/raywrt-package-index-init enable 2>/dev/null
+/etc/init.d/raywrt-package-index-init start 2>/dev/null
+chmod 755 /usr/libexec/raywrt-first-run-wifi /usr/libexec/raywrt-first-run-wifi-service /etc/init.d/raywrt-first-run-wifi 2>/dev/null
+/etc/init.d/raywrt-first-run-wifi enable 2>/dev/null
+/etc/init.d/raywrt-first-run-wifi start 2>/dev/null
+uci -q get luci.themes.RayWRT >/dev/null || {
+  uci set luci.themes.RayWRT=/luci-static/raywrt
+}
+# Select the theme only for a fresh RayWRT configuration. The pending marker
+# ships in the default config, which is not restored over an existing config
+# during sysupgrade. Marking it applied also protects later user selections if
+# this defaults script is ever run again.
+if [ "$(uci -q get raywrt.system.theme_default)" = pending ]; then
+  uci set luci.main.mediaurlbase=/luci-static/raywrt
+  uci set raywrt.system.theme_default=applied
+  uci commit raywrt
+fi
+uci commit luci
+exit 0

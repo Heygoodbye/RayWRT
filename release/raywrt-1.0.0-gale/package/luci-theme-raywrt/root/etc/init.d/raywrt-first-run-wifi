@@ -1,0 +1,12 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+STOP=10
+USE_PROCD=1
+
+start_service() {
+	[ "$(uci -q get raywrt.system.wifi_default 2>/dev/null)" = pending ] || return 0
+	procd_open_instance
+	procd_set_param command /usr/libexec/raywrt-first-run-wifi-service
+	procd_close_instance
+}
