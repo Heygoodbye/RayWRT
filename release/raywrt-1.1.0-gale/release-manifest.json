@@ -15,6 +15,7 @@
   "supported_device": "google,wifi",
   "image_filename": "raywrt-1.1.0-gale-sysupgrade.bin",
   "image_size_bytes": 9513501,
-  "image_sha256": "c24fd28e88ebc0ff6acfc80df8ef3f3266c9d88fc4eb1c8f31ea767038f3d1f7",
-  "release_tag": "v1.1"
+  "image_sha256": "56381a9f9decd7cec2eb453940ab4203c65db588895ac68c2f163728ee903dde",
+  "release_tag": "v1.1",
+  "replacement_reason": "Preserved-settings boot recovery for never-handshaken WireGuard and Iran IPv4 list download"
 }

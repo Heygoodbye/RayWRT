@@ -62,6 +62,46 @@ full_tunnel_peer() {
   printf '%s\n' "$1"
 }
 
+# A default route alone does not prove that its full-tunnel peer is usable.
+vpn_has_handshake() {
+  handshake_peer=$(full_tunnel_peer "$1") || return 1
+  handshake_key=$(uci -q get "network.$handshake_peer.public_key" 2>/dev/null) || return 1
+  wg show "$1" latest-handshakes 2>/dev/null | awk -v key="$handshake_key" '$1==key && $2>0 {found=1} END {exit !found}'
+}
+
+restore_wan_runtime() {
+  wan_status "$(setting wan_interface wan)" || return 1
+  if [ -n "$wan_gw" ]; then
+    ip -4 route replace default via "$wan_gw" dev "$wan_dev" || return 1
+  else
+    ip -4 route replace default dev "$wan_dev" || return 1
+  fi
+}
+
+# Only recover a selected, enabled full tunnel which has never handshaken.
+# Do not change configuration or fall back on a previously working tunnel.
+check_boot_tunnel() {
+  boot_wg=$(setting interface '')
+  configured_wg "$boot_wg" || return 0
+  if vpn_has_handshake "$boot_wg"; then
+    if [ "$(cat /tmp/raywrt-wg-boot-fallback 2>/dev/null)" = "$boot_wg" ]; then
+      ip -4 route replace default dev "$boot_wg" || return 1
+      rm -f /tmp/raywrt-wg-boot-fallback
+      logger -t raywrt-wireguard 'WireGuard handshake established; restored selected VPN default route.'
+    fi
+    return 0
+  fi
+  boot_status=$(ubus call "network.interface.$boot_wg" status 2>/dev/null) || return 0
+  boot_uptime=$(printf '%s' "$boot_status" | jsonfilter -e '@.uptime' 2>/dev/null)
+  case "$boot_uptime" in ''|*[!0-9]*) return 0;; esac
+  [ "$boot_uptime" -ge 90 ] || return 0
+  if vpn_is_default "$boot_wg" && restore_wan_runtime; then
+    printf '%s\n' "$boot_wg" >/tmp/raywrt-wg-boot-fallback
+    remove_policy
+    logger -t raywrt-wireguard 'Selected WireGuard peer never handshook after boot; restored WAN connectivity until it connects.'
+  fi
+}
+
 restore_wg_default_route() {
   [ "${route_changed:-no}" = yes ] || [ "${interface_changed:-no}" = yes ] || return 0
   if [ "${route_changed:-no}" = yes ]; then
@@ -83,7 +123,7 @@ ensure_wg_default_route() {
   route_wg=$1
   route_changed=no
   interface_changed=no
-  vpn_is_default "$route_wg" && return 0
+  vpn_is_default "$route_wg" && vpn_has_handshake "$route_wg" && return 0
   route_peer=$(full_tunnel_peer "$route_wg") || {
     echo "Select exactly one '$route_wg' peer with IPv4 Allowed IPs 0.0.0.0/0 before enabling Iran direct routing." >&2
     return 1
@@ -114,13 +154,19 @@ ensure_wg_default_route() {
   fi
   tries=0
   while [ "$tries" -lt 15 ]; do
-    if vpn_is_default "$route_wg"; then
+    if vpn_is_default "$route_wg" && vpn_has_handshake "$route_wg"; then
       echo "Started '$route_wg' and verified its IPv4 default route."
       return 0
     fi
     sleep 1
     tries=$((tries + 1))
   done
+  if ! vpn_has_handshake "$route_wg"; then
+    restore_wg_default_route || true
+    restore_wan_runtime || true
+    echo "WireGuard '$route_wg' has no completed handshake; WAN connectivity was retained. Check endpoint reachability and VPN credentials before enabling routing." >&2
+    return 1
+  fi
   if restore_wg_default_route; then
     echo "The '$route_wg' route did not become the IPv4 default. Check tunnel status and route metrics; activation changes were restored." >&2
   else
@@ -157,7 +203,7 @@ download_list() {
   mkdir -p "$DATA_DIR" || return 1
   tmp="$IP_FILE.download.$$"; normalized="$IP_FILE.normalized.$$"; countfile="$IP_FILE.count.$$"
   rm -f "$tmp" "$normalized" "$countfile"
-  if ! wget -T 35 -O "$tmp" "$SOURCE" >/dev/null 2>&1; then rm -f "$tmp" "$normalized" "$countfile"; echo 'Could not download the Iran IPv4 list.' >&2; return 1; fi
+  if ! wget -4 -T 35 -O "$tmp" "$SOURCE" >/dev/null 2>&1; then rm -f "$tmp" "$normalized" "$countfile"; echo 'Could not download the Iran IPv4 list. Check WAN/DNS and whether the selected VPN has completed a handshake.' >&2; return 1; fi
   bytes=$(wc -c <"$tmp" | tr -d ' ')
   case "$bytes" in ''|*[!0-9]*) rm -f "$tmp"; echo 'Invalid list size.' >&2; return 1;; esac
   if [ "$bytes" -lt 1024 ] || [ "$bytes" -gt 5242880 ]; then rm -f "$tmp"; echo 'The Iran IPv4 list has an unexpected size.' >&2; return 1; fi
@@ -251,7 +297,7 @@ status() {
   rule_state=inactive; ip -4 rule show | grep -Fq "fwmark $MARK/$MASK lookup $ROUTE_TABLE" && rule_state=ready
   printf 'enabled=%s\ninterface=%s\nwan_interface=%s\nwan_device=%s\nwan_gateway=%s\niran_ipv4_ranges=%s\nlist_updated=%s\nroute_device=%s\ndirect_route_device=%s\nnft_state=%s\npolicy_state=%s\n' \
     "$enabled" "${wg:-not-selected}" "$wan" "${wan_dev:-unavailable}" "${wan_gw:-on-link}" "$count" "$updated" "$route_dev" "$direct_dev" "$nft_state" "$rule_state"
-  if [ "$route_dev" = "$wg" ] && [ "$direct_dev" = "$wan_dev" ] && [ "$nft_state" = ready ] && [ "$rule_state" = ready ]; then echo 'state=active'
+  if [ "$enabled" = 1 ] && vpn_has_handshake "$wg" && [ "$route_dev" = "$wg" ] && [ "$direct_dev" = "$wan_dev" ] && [ "$nft_state" = ready ] && [ "$rule_state" = ready ]; then echo 'state=active'
   elif [ "$enabled" = 1 ]; then echo 'state=needs-attention'
   else echo 'state=disabled'; fi
 }
@@ -320,6 +366,7 @@ daemon() {
   while :; do
     if [ "$(setting enabled 0)" = 1 ]; then
       if mkdir "$LOCK" 2>/dev/null; then
+        check_boot_tunnel
         if [ ! -s "$IP_FILE" ] || [ ! -s "$UPDATED_FILE" ] || [ "$(($(date +%s)-$(cat "$UPDATED_FILE" 2>/dev/null || echo 0)))" -ge 21600 ]; then download_list >/tmp/raywrt-wg-split-update.log 2>&1 || true; fi
         apply >/tmp/raywrt-wg-split-apply.log 2>&1 || true
         rmdir "$LOCK" 2>/dev/null || true

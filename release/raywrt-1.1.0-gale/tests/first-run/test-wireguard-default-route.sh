@@ -11,6 +11,9 @@ for function in valid_id configured_wg vpn_is_default full_tunnel_peer restore_w
 done
 . "$work/functions"
 
+vpn_has_handshake() { [ "${handshake:-yes}" = yes ]; }
+restore_wan_runtime() { :; }
+
 flag=unavailable disabled=1 active=no peers=1 allowed='0.0.0.0/0' works=yes changes=0
 uci() {
   [ "${1:-}" != -q ] || shift
@@ -77,3 +80,8 @@ works=no flag=1 disabled=0 active=no changes=0
 if ensure_wg_default_route wgtest >/dev/null 2>&1; then exit 1; fi
 [ "$flag" = 1 ] && [ "$disabled" = 0 ] && [ "$changes" -eq 0 ]
 echo 'PASS: WireGuard default-route setup, preservation and rollback.'
+
+handshake=no works=yes flag=0 disabled=0 active=no changes=0
+if ensure_wg_default_route wgtest >/dev/null 2>&1; then exit 1; fi
+[ "$flag" = 0 ] && [ "$active" = no ]
+echo "PASS: no-handshake route activation is rejected and changes are restored."
