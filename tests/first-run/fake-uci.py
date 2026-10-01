@@ -36,7 +36,7 @@ def key_parts(key):
 def get_value(key):
     value = state.get(key)
     if isinstance(value, list):
-        return value[0] if value else None
+        return " ".join(value) if value else None
     return value
 
 
@@ -87,10 +87,10 @@ elif operation == "show":
     else:
         for key, value in sorted(state.items()):
             if key == prefix or key.startswith(prefix + ".") or not prefix:
-                values = value if isinstance(value, list) else [value]
-                for item in values:
-                    if item is not None:
-                        print(f"{key}='{item}'")
+                if isinstance(value, list):
+                    print(key + "=" + " ".join("'" + item + "'" for item in value))
+                elif value is not None:
+                    print(f"{key}='{value}'")
 elif operation == "commit":
     committed = state.copy()
     committed_file.write_text(json.dumps(committed, sort_keys=True))

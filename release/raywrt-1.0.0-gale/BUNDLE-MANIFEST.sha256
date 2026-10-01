@@ -37,7 +37,7 @@ e550d039b29997575bd03ac4c553e703d0cf178e0fea588e5c1e2295a931d244 *package/luci-t
 9288fd22e1353526d7a734ce2d72c52e182ce0b81784ad2702fb89580c55a8ca *package/luci-theme-raywrt/root/usr/libexec/raywrt-device-usage
 8a3ee3fa604687bf6c85e575e914a2518f75542b84ea60fdd6f039593ba5db4f *package/luci-theme-raywrt/root/usr/libexec/raywrt-device-usage-control
 47c95a330127c86244e39506ebfe998a9b73ed5ecad120e9125ee9f7a57cb601 *package/luci-theme-raywrt/root/usr/libexec/raywrt-diagnostics
-a6946ffafc1c2ce71babbea600623ac351e19052660198c474aec26f2b3ee726 *package/luci-theme-raywrt/root/usr/libexec/raywrt-first-run-dns
+829f4ee9921baf64365b031b5d401cc92d3474cee8bb86d026dc7539417274ba *package/luci-theme-raywrt/root/usr/libexec/raywrt-first-run-dns
 a873b29c12a41bacb396523bac6ab1d8c9e24c7091d62453764566827e674a8a *package/luci-theme-raywrt/root/usr/libexec/raywrt-first-run-wifi
 120f4e58effc86e310736685b953ad396d8f17588785dac243d00af8062acc31 *package/luci-theme-raywrt/root/usr/libexec/raywrt-first-run-wifi-service
 7ad5676ab8ee5d61d52592d02ef3d1cdc59a795652414605ef6d0c105a80ee04 *package/luci-theme-raywrt/root/usr/libexec/raywrt-package-index-init
@@ -61,9 +61,9 @@ fc9e73315d4654cc2d20a3242ab207e79e707bec33c64e50e3036dfd4209b4cf *RELEASE_NOTES.
 a8d60ddf0847ef05b95d977af8af8930a671504306c0a1c25d2526edcf29c39c *scripts/build-raywrt-gale.sh
 0750439e17db60155fffbef48c776cb22d3db04efbdfce00df78ac334cff54c5 *scripts/check-build-host.sh
 a9f92e91116660ffaf570a931cc407986c5c2d276431ae109e71e0afc659e557 *scripts/verify-raywrt-image.sh
-1f845809c27d5248946eebcddec8d3f4ccf595536fd63987d828a6faf519f7d8 *SOURCE-MANIFEST.sha256
-b84db31d26ae2e3b0af33ebd3a6fe99bcc2835ee328006f8b54bcd601aa61af4 *tests/first-run/fake-uci.py
+33190200dcd27215e4df77b93366bc634fb2d2dad1f6cb6c2d788a1d80bb600e *SOURCE-MANIFEST.sha256
+c0685c39654eba95e988c0ae5c7437f793bd1bcc172e1a8f2f4afbdd76cc1d41 *tests/first-run/fake-uci.py
 eb5088173fd81df58ce6e068bfdae3c889718744ec245650383f8085a7d4681e *tests/first-run/test-apk-provider-transaction.sh
-b4f39f0a345bce8234d42cb7223c4dcbc306b63f04ea77127ee96306a32c2b96 *tests/first-run/test-first-run-provisioning.sh
+1bd01378d11276ef79dc63aa2afc230b22f2c9827617d0baa949e78f5983ce67 *tests/first-run/test-first-run-provisioning.sh
 8e7896b0915126e6fc5adc18e6955b51fca84e066f7ab46963183f7a0e6dae22 *tests/first-run/test-tools-action-dedup.mjs
 edc9063fc9836aff78b17b9acd27dbec53d79a5d229b404672492626476c02b5 *tests/first-run/test-wireguard-default-route.sh

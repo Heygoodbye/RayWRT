@@ -38,15 +38,17 @@ uci add_list network.wan.dns='1.1.1.1' || { uci revert network; mark_done failed
 uci add_list network.wan.dns='1.0.0.1' || { uci revert network; mark_done failed; exit 0; }
 uci commit network || { uci revert network; mark_done failed; exit 0; }
 
-# Verify persisted values before marking the one-time operation complete.
+# UCI returns a list as one space-separated value, not one show line per item.
 actual_peer=$(uci -q get network.wan.peerdns 2>/dev/null || true)
-actual_dns=$(uci -q show network.wan 2>/dev/null | sed -n 's/^network\.wan\.dns=//p')
-dns_dump=$(uci -q show network.wan 2>/dev/null || true)
-dns_primary=$(printf '%s\n' "$dns_dump" | grep -Fxc "network.wan.dns='1.1.1.1'" || true)
-dns_secondary=$(printf '%s\n' "$dns_dump" | grep -Fxc "network.wan.dns='1.0.0.1'" || true)
-if [ "$actual_peer" = 0 ] && [ "$dns_primary" = 1 ] && [ "$dns_secondary" = 1 ] &&
-   [ "$(printf '%s\n' "$actual_dns" | wc -l)" -eq 2 ]; then
-	mark_done applied
+actual_dns=$(uci -q get network.wan.dns 2>/dev/null || true)
+if [ "$actual_peer" = 0 ] && [ "$actual_dns" = '1.1.1.1 1.0.0.1' ]; then
+	# Commit alone does not update a WAN already started by netifd.
+	# Reload applies the changed interface without restarting LAN or rebooting.
+	if ubus call network reload >/dev/null 2>&1; then
+		mark_done applied
+	else
+		mark_done failed
+	fi
 else
 	mark_done failed
 fi

@@ -23,7 +23,12 @@ n=$((n + 1))
 [ -z "${RAYWRT_TEST_WIFI_COUNT:-}" ] || echo "$n" >"$RAYWRT_TEST_WIFI_COUNT"
 [ "$n" -gt "${RAYWRT_TEST_WIFI_FAIL_UNTIL:-0}" ]
 EOF
-chmod 755 "$TMP_ROOT/bin/uci" "$TMP_ROOT/bin/wifi"
+cat >"$TMP_ROOT/bin/ubus" <<'EOF'
+#!/bin/sh
+[ "$*" = 'call network reload' ] || exit 1
+[ -z "${RAYWRT_CONFIG_DIR:-}" ] || echo reload >>"$RAYWRT_CONFIG_DIR/.network-reloads"
+EOF
+chmod 755 "$TMP_ROOT/bin/uci" "$TMP_ROOT/bin/wifi" "$TMP_ROOT/bin/ubus"
 export PATH="$TMP_ROOT/bin:$PATH" RAYWRT_TEST_SOURCE="$SOURCE_ROOT" RAYWRT_PACKAGE_SOURCE="$PACKAGE_ROOT"
 
 fixture() {
@@ -385,13 +390,13 @@ dns_fixture "$fresh_dns" '{
 }'
 RAYWRT_CONFIG_DIR="$fresh_dns" sh "$PACKAGE_ROOT/root/usr/libexec/raywrt-first-run-dns"
 [ "$(RAYWRT_CONFIG_DIR="$fresh_dns" uci -q get network.wan.peerdns)" = 0 ]
-[ "$(RAYWRT_CONFIG_DIR="$fresh_dns" uci -q get network.wan.dns)" = 1.1.1.1 ]
-[ "$(RAYWRT_CONFIG_DIR="$fresh_dns" uci -q show network.wan | grep -Fxc "network.wan.dns='1.1.1.1'")" = 1 ]
-[ "$(RAYWRT_CONFIG_DIR="$fresh_dns" uci -q show network.wan | grep -Fxc "network.wan.dns='1.0.0.1'")" = 1 ]
+[ "$(RAYWRT_CONFIG_DIR="$fresh_dns" uci -q get network.wan.dns)" = "1.1.1.1 1.0.0.1" ]
+[ "$(cat "$fresh_dns/.network-reloads")" = reload ]
 [ "$(RAYWRT_CONFIG_DIR="$fresh_dns" uci -q get network.wan6.peerdns)" = 1 ]
 [ "$(RAYWRT_CONFIG_DIR="$fresh_dns" uci -q get raywrt.system.dns_default)" = applied ]
 RAYWRT_CONFIG_DIR="$fresh_dns" sh "$PACKAGE_ROOT/root/usr/libexec/raywrt-first-run-dns"
-[ "$(RAYWRT_CONFIG_DIR="$fresh_dns" uci -q show network.wan | grep -Fc "network.wan.dns=")" = 2 ]
+[ "$(RAYWRT_CONFIG_DIR="$fresh_dns" uci -q get network.wan.dns)" = "1.1.1.1 1.0.0.1" ]
+[ "$(wc -l <"$fresh_dns/.network-reloads")" -eq 1 ]
 echo 'PASS: first-run DHCP WAN DNS default, IPv6 separation, and idempotence'
 
 # Old/custom installations have no pending marker and must never be rewritten.
