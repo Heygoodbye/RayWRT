@@ -125,21 +125,32 @@ The supplied application screenshots show Windows; Android provides the same mai
 
 ## 🚀 Installation
 
-### Router firmware — Google WiFi Gale only
+### Recommended: install the GitHub Release sysupgrade — Gale only
+
+Download `raywrt-1.0.0-gale-sysupgrade.bin` from [GitHub Releases](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0) and install it through LuCI. This is the recommended installation method.
 
 This `.bin` is a sysupgrade image for a Gale already running OpenWrt. It is not an image for installing from Google's stock firmware. For a stock router, follow the [OpenWrt Google WiFi installation guide](https://openwrt.org/toh/google/wifi) first.
 
 1. Connect your computer to the router by Ethernet. Open LuCI at your router's LAN address, usually `http://192.168.1.1`, and sign in.
 2. Open **System → Backup / Flash Firmware**. Download a configuration backup and keep a matching recovery image available. Read the [Gale recovery guide](release/raywrt-1.0.0-gale/GALE_RECOVERY.md).
-3. Download the Gale sysupgrade from the links above. Compare its SHA256 with the release notes. On Windows, run this in PowerShell from the download folder:
-
-   ```powershell
-   Get-FileHash .\raywrt-1.0.0-gale-sysupgrade.bin -Algorithm SHA256
-   ```
+3. Download the Gale sysupgrade from GitHub Releases. The optional checksum check below lets you compare your download with the SHA256 in the release notes.
 
 4. In LuCI's **Flash new firmware image** section, select the `.bin`, upload it, and review the compatibility check. Do not force a mismatched image. This image includes a swconfig-to-DSA compatibility notice; do not preserve incompatible settings.
 5. For a clean first RayWRT installation, clear **Keep settings and retain the current configuration**. This erases saved router settings, including Wi-Fi passwords and VPN configurations. If upgrading an existing compatible RayWRT installation and keeping settings, fresh-install defaults will not replace your custom configuration.
 6. Confirm the flash, keep power connected, and wait for the router to reboot. Reconnect to its LAN and open `http://192.168.1.1` for a clean installation. Both default AP SSIDs are `RayWRT`; configure your root password, Wi-Fi security, WAN, and VPN settings afterward.
+
+<details>
+<summary>🔐 Optional: check the download's SHA256 in Windows PowerShell</summary>
+
+This checks the downloaded file; it does not install or flash firmware. Open PowerShell in the folder containing the sysupgrade and run:
+
+```powershell
+Get-FileHash .\raywrt-1.0.0-gale-sysupgrade.bin -Algorithm SHA256
+```
+
+Compare the result with the firmware SHA256 in the [GitHub Release notes](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0). If they differ, download the file again and do not flash it.
+
+</details>
 
 ### Windows app
 
