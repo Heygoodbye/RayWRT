@@ -6,14 +6,6 @@
 
 RayWRT is a dark green LuCI theme, live dashboard, and router tools package, with Windows and Android companions. Created by [Heygoodbye](https://github.com/Heygoodbye), it uses real router data and keeps native OpenWrt administration accessible.
 
-## 📥 Downloads
-
-1. [Google WiFi Gale sysupgrade — OpenWrt 25.12.5](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/raywrt-1.0.0-gale-sysupgrade.bin)
-2. [Windows x64 installer](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/RayWRT-v1-Windows-x64-Setup.exe)
-3. [Android universal APK — Android 8+](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/RayWRT-v1-Android-universal.apk)
-
-[Release notes and SHA256 checksums](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0)
-
 ## 🧪 Compatibility and status
 
 | Component | Target |
@@ -109,6 +101,46 @@ Both apps read real UCI/ubus state through SSH. The 15-endpoint set includes the
 The supplied application screenshots show Windows; Android provides the same main control areas.
 
 <p><img src="docs/screenshots/windows-passwall.png" alt="Windows Passwall controls" width="360"> <img src="docs/screenshots/windows-router-tools.png" alt="Windows router tools" width="360"></p>
+
+## 📥 Downloads
+
+1. [Google WiFi Gale sysupgrade — OpenWrt 25.12.5](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/raywrt-1.0.0-gale-sysupgrade.bin)
+2. [Windows x64 installer](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/RayWRT-v1-Windows-x64-Setup.exe)
+3. [Android universal APK — Android 8+](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/RayWRT-v1-Android-universal.apk)
+
+[Release notes and SHA256 checksums](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0)
+
+## 🚀 Installation
+
+### Router firmware — Google WiFi Gale only
+
+This `.bin` is a sysupgrade image for a Gale already running OpenWrt. It is not an image for installing from Google's stock firmware. For a stock router, follow the [OpenWrt Google WiFi installation guide](https://openwrt.org/toh/google/wifi) first.
+
+1. Connect your computer to the router by Ethernet. Open LuCI at your router's LAN address, usually `http://192.168.1.1`, and sign in.
+2. Open **System → Backup / Flash Firmware**. Download a configuration backup and keep a matching recovery image available. Read the [Gale recovery guide](release/raywrt-1.0.0-gale/GALE_RECOVERY.md).
+3. Download the Gale sysupgrade from the links above. Compare its SHA256 with the release notes. On Windows, run this in PowerShell from the download folder:
+
+   ```powershell
+   Get-FileHash .\raywrt-1.0.0-gale-sysupgrade.bin -Algorithm SHA256
+   ```
+
+4. In LuCI's **Flash new firmware image** section, select the `.bin`, upload it, and review the compatibility check. Do not force a mismatched image. This image includes a swconfig-to-DSA compatibility notice; do not preserve incompatible settings.
+5. For a clean first RayWRT installation, clear **Keep settings and retain the current configuration**. This erases saved router settings, including Wi-Fi passwords and VPN configurations. If upgrading an existing compatible RayWRT installation and keeping settings, fresh-install defaults will not replace your custom configuration.
+6. Confirm the flash, keep power connected, and wait for the router to reboot. Reconnect to its LAN and open `http://192.168.1.1` for a clean installation. Both default AP SSIDs are `RayWRT`; configure your root password, Wi-Fi security, WAN, and VPN settings afterward.
+
+### Windows app
+
+1. Download `RayWRT-v1-Windows-x64-Setup.exe` and run the installer on Windows x64.
+2. Open RayWRT, enter your router's LAN address, SSH username (usually `root`), and password, then connect.
+3. Compare the displayed SSH fingerprint with your router's known fingerprint before accepting it. Your computer must be able to reach the router and SSH must be enabled.
+
+### Android app
+
+1. Download `RayWRT-v1-Android-universal.apk` on a device running Android 8 or newer.
+2. Allow **Install unknown apps** for the browser or file manager used to open the APK, then install it. You can disable that permission afterward.
+3. Join the router's network, open RayWRT, enter its SSH address/username/password, and verify the fingerprint before connecting.
+
+The apps control the router; installing an app does not flash firmware or create a VPN on your phone or computer.
 
 ## 🔧 Source and builds
 

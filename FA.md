@@ -112,6 +112,50 @@
 
 <p><img src="docs/screenshots/windows-passwall.png" alt="Passwall ویندوز" width="360"> <img src="docs/screenshots/windows-router-tools.png" alt="ابزارهای روتر در ویندوز" width="360"></p>
 
+## 📥 دانلود
+
+1. [فریمور گوگل وای‌فای <span dir="ltr">Gale</span> — <span dir="ltr">OpenWrt 25.12.5</span>](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/raywrt-1.0.0-gale-sysupgrade.bin)
+2. [نصب‌کننده ویندوز ۶۴ بیتی](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/RayWRT-v1-Windows-x64-Setup.exe)
+3. [اپ یونیورسال اندروید — اندروید ۸ به بالا](https://github.com/Heygoodbye/RayWRT/releases/download/v1.0.0/RayWRT-v1-Android-universal.apk)
+
+[توضیحات انتشار و هش <span dir="ltr">SHA256</span> فایل‌ها](https://github.com/Heygoodbye/RayWRT/releases/tag/v1.0.0)
+
+## 🚀 چطور نصب کنم؟
+
+### فریمور روتر — فقط گوگل وای‌فای <span dir="ltr">Gale</span>
+
+این فایل برای روتریه که از قبل <span dir="ltr">OpenWrt</span> داره؛ برای نصب مستقیم روی فریمور اصلی گوگل نیست. اگه هنوز فریمور گوگل رو داری، اول [راهنمای نصب <span dir="ltr">OpenWrt</span> روی گوگل وای‌فای](https://openwrt.org/toh/google/wifi) رو دنبال کن.
+
+1. کامپیوتر رو با کابل شبکه به روتر وصل کن. پنل رو با آدرس فعلی روتر، معمولاً <code dir="ltr">http://192.168.1.1</code>، باز کن و وارد شو.
+2. از مسیر <span dir="ltr">System → Backup / Flash Firmware</span> بکاپ تنظیمات رو دانلود کن. یه ایمیج سالم برای برگشت هم نگه دار و [راهنمای بازیابی](release/raywrt-1.0.0-gale/GALE_RECOVERY.md) رو بخون.
+3. فایل فریمور رو از لینک بالا بگیر و هش <span dir="ltr">SHA256</span> رو با توضیحات انتشار مقایسه کن. توی ویندوز، از پوشه دانلود این دستور رو توی <span dir="ltr">PowerShell</span> اجرا کن:
+
+<div dir="ltr">
+
+```powershell
+Get-FileHash .\raywrt-1.0.0-gale-sysupgrade.bin -Algorithm SHA256
+```
+
+</div>
+
+4. توی بخش <span dir="ltr">Flash new firmware image</span> فایل <code dir="ltr">.bin</code> رو آپلود کن و نتیجه بررسی سازگاری رو بخون. اگه ناسازگاری دیدی، با گزینه اجبار ادامه نده. ایمیج پیام تغییر <span dir="ltr">swconfig</span> به <span dir="ltr">DSA</span> داره؛ تنظیمات ناسازگار رو نگه ندار.
+5. برای اولین نصب تمیز، تیک <span dir="ltr">Keep settings and retain the current configuration</span> رو بردار. این کار تنظیمات قبلی، رمز وای‌فای و کانفیگ‌های وی‌پی‌ان رو پاک می‌کنه. اگه از یه نسخه سازگار <span dir="ltr">RayWRT</span> ارتقا می‌دی و تنظیمات رو نگه می‌داری، پیش‌فرض‌های نصب جدید جای تنظیمات شخصی‌ات رو نمی‌گیرن.
+6. فلش رو تأیید کن، برق رو قطع نکن و منتظر ریبوت بمون. بعد از نصب تمیز دوباره به شبکه روتر وصل شو و <code dir="ltr">http://192.168.1.1</code> رو باز کن. اسم پیش‌فرض هر دو وای‌فای <span dir="ltr">RayWRT</span> می‌شه؛ بعدش رمز مدیریت، امنیت وای‌فای، اینترنت و وی‌پی‌ان رو تنظیم کن.
+
+### اپ ویندوز
+
+1. نصب‌کننده رو از لینک بالا بگیر و روی ویندوز ۶۴ بیتی اجرا کن.
+2. اپ رو باز کن، آدرس روتر، نام کاربری <span dir="ltr">SSH</span> — معمولاً <span dir="ltr">root</span> — و رمز رو وارد کن و وصل شو.
+3. قبل از تأیید، اثر انگشت <span dir="ltr">SSH</span> رو با اثر انگشت معتبر روتر مقایسه کن. روتر باید از کامپیوتر قابل دسترسی باشه و <span dir="ltr">SSH</span> روشن باشه.
+
+### اپ اندروید
+
+1. فایل <span dir="ltr">APK</span> یونیورسال رو روی گوشی با اندروید ۸ یا جدیدتر دانلود کن.
+2. برای مرورگر یا فایل‌منیجری که فایل رو باز می‌کنه، اجازه «نصب برنامه‌های ناشناس» رو بده و اپ رو نصب کن. بعدش می‌تونی این اجازه رو خاموش کنی.
+3. به شبکه روتر وصل شو، اپ رو باز کن، آدرس و اطلاعات ورود <span dir="ltr">SSH</span> رو وارد کن و قبل از اتصال اثر انگشت رو بررسی کن.
+
+اپ‌ها روتر رو کنترل می‌کنن؛ نصب اپ، فریمور رو فلش نمی‌کنه و روی خود گوشی یا کامپیوتر وی‌پی‌ان نمی‌سازه.
+
 ## 🔧 سورس و ساخت پروژه
 
 | مسیر | چی داخلشه؟ |
