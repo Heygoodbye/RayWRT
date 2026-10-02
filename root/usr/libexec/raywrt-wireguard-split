@@ -62,11 +62,11 @@ full_tunnel_peer() {
   printf '%s\n' "$1"
 }
 
-# A default route alone does not prove that its full-tunnel peer is usable.
+# A default route or historical handshake does not prove current peer health.
 vpn_has_handshake() {
   handshake_peer=$(full_tunnel_peer "$1") || return 1
   handshake_key=$(uci -q get "network.$handshake_peer.public_key" 2>/dev/null) || return 1
-  wg show "$1" latest-handshakes 2>/dev/null | awk -v key="$handshake_key" '$1==key && $2>0 {found=1} END {exit !found}'
+  wg show "$1" latest-handshakes 2>/dev/null | awk -v key="$handshake_key" -v now="$(date +%s)" '$1==key && $2>0 && now-$2>=0 && now-$2<=300 {found=1} END {exit !found}'
 }
 
 restore_wan_runtime() {
@@ -78,8 +78,8 @@ restore_wan_runtime() {
   fi
 }
 
-# Only recover a selected, enabled full tunnel which has never handshaken.
-# Do not change configuration or fall back on a previously working tunnel.
+# Recover never-connected peers and stalled peers with active keepalive.
+# An idle peer without keepalive is not proof of a failed connection.
 check_boot_tunnel() {
   boot_wg=$(setting interface '')
   configured_wg "$boot_wg" || return 0
@@ -91,6 +91,12 @@ check_boot_tunnel() {
     fi
     return 0
   fi
+  # With keepalive disabled an old handshake may simply mean an idle peer.
+  boot_last=$(wg show "$boot_wg" latest-handshakes 2>/dev/null | awk -v key="$handshake_key" '$1==key {print $2}')
+  boot_keepalive=$(wg show "$boot_wg" persistent-keepalive 2>/dev/null | awk -v key="$handshake_key" '$1==key {print $2}')
+  if [ "${boot_last:-0}" -gt 0 ] 2>/dev/null; then
+    case "$boot_keepalive" in ''|off|0|*[!0-9]*) return 0;; esac
+  fi
   boot_status=$(ubus call "network.interface.$boot_wg" status 2>/dev/null) || return 0
   boot_uptime=$(printf '%s' "$boot_status" | jsonfilter -e '@.uptime' 2>/dev/null)
   case "$boot_uptime" in ''|*[!0-9]*) return 0;; esac
@@ -98,7 +104,7 @@ check_boot_tunnel() {
   if vpn_is_default "$boot_wg" && restore_wan_runtime; then
     printf '%s\n' "$boot_wg" >/tmp/raywrt-wg-boot-fallback
     remove_policy
-    logger -t raywrt-wireguard 'Selected WireGuard peer never handshook after boot; restored WAN connectivity until it connects.'
+    logger -t raywrt-wireguard 'Selected WireGuard peer has no recent handshake; restored WAN until a fresh handshake succeeds.'
   fi
 }
 

@@ -2,10 +2,10 @@
   "release_name": "RayWRT",
   "raywrt_version": "1.1.0",
   "release_channel": "public",
-  "source_status": "frozen",
+  "source_status": "pending_rebuild",
   "release_status": "public_release",
   "user_acceptance": "pending_for_replacement_image",
-  "image_validation": "build_artifact_verified",
+  "image_validation": "pending",
   "clean_sysupgrade_validation": "pending",
   "public_release_status": "not_yet_validated",
   "openwrt_version": "25.12.5",
@@ -17,5 +17,5 @@
   "image_size_bytes": 9513501,
   "image_sha256": "56381a9f9decd7cec2eb453940ab4203c65db588895ac68c2f163728ee903dde",
   "release_tag": "v1.1",
-  "replacement_reason": "Preserved-settings boot recovery for never-handshaken WireGuard and Iran IPv4 list download"
+  "replacement_reason": "Live stalled keepalive tunnel recovery fix; firmware rebuild pending"
 }

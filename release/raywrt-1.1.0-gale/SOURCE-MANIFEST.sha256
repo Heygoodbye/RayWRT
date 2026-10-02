@@ -42,7 +42,7 @@ a873b29c12a41bacb396523bac6ab1d8c9e24c7091d62453764566827e674a8a *root/usr/libex
 14e90469affa14612322b43ba0073f712736d461bc6e2ba918f98e6309ff2ad4 *root/usr/libexec/raywrt-tools
 63cb215becd58a49fc2525c5cdbe61a2d47ee624c12b9d7832659163c983cc67 *root/usr/libexec/raywrt-usage
 2041256e11ea84917ffc1780b60de30eafb1150dfbc5a94c4548fffef8f5eda1 *root/usr/libexec/raywrt-usage-control
-cf3f62eed32a3d27befec3e3a5cc031ac020909556bd66fa0ca77c2f009c4bfa *root/usr/libexec/raywrt-wireguard-split
+5b6504c0ad836ed4400b18af8544501074de7fa419c8dd620ec89b43e8290bb9 *root/usr/libexec/raywrt-wireguard-split
 d179b499f6af863253e750d34f1aebdf09eecfbdf6c8288e2dc2e552adbb724e *root/usr/share/luci/menu.d/luci-theme-raywrt.json
 39c9c27ab9c0a6c45bff3ef2abcf12b65aada78846c54d44c14c0c969fe7e840 *root/usr/share/raywrt/licenses/iran-ip-ranges-MIT.txt
 df253422b738788317109c8da31f7f66d2bbf5ad8b1b7d97f2549814b7e562c8 *root/usr/share/rpcd/acl.d/luci-theme-raywrt.json

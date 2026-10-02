@@ -14,7 +14,8 @@ setting() { echo wgtest; }
 configured_wg() { return 0; }
 full_tunnel_peer() { echo peer; }
 uci() { echo key; }
-wg() { printf 'key %s\n' "$handshake"; }
+date() { echo 1000; }
+wg() { if [ "$3" = persistent-keepalive ]; then printf "key %s\n" "$keepalive"; return; fi; printf 'key %s\n' "$handshake"; }
 ubus() { echo '{}'; }
 jsonfilter() { echo "$up"; }
 vpn_is_default() { [ "$default" = vpn ]; }
@@ -22,14 +23,14 @@ restore_wan_runtime() { echo WAN >>"$TEST_ROOT/actions"; }
 remove_policy() { echo CLEAN >>"$TEST_ROOT/actions"; }
 logger() { :; }
 ip() { echo VPN >>"$TEST_ROOT/actions"; }
-handshake=0 up=30 default=vpn
+handshake=0 up=30 default=vpn keepalive=25
 check_boot_tunnel
 [ ! -f "$TEST_ROOT/actions" ]
 up=100
 check_boot_tunnel
 [ "$(cat "$TEST_ROOT/actions")" = "$(printf 'WAN\nCLEAN')" ]
 [ "$(cat "$TEST_ROOT/fallback")" = wgtest ]
-handshake=123 default=wan
+handshake=900 default=wan
 check_boot_tunnel
 [ ! -f "$TEST_ROOT/fallback" ]
 [ "$(tail -n1 "$TEST_ROOT/actions")" = VPN ]
@@ -37,7 +38,23 @@ rm "$TEST_ROOT/actions"
 default=vpn
 check_boot_tunnel
 [ ! -f "$TEST_ROOT/actions" ]
+handshake=500 keepalive=0
+check_boot_tunnel
+[ ! -f "$TEST_ROOT/actions" ]
+keepalive=25
+check_boot_tunnel
+[ "$(head -n1 "$TEST_ROOT/actions")" = WAN ]
+# Historical handshake must not restore a broken VPN route.
+default=wan
+check_boot_tunnel
+[ "$(tail -n1 "$TEST_ROOT/actions")" = CLEAN ]
+handshake=990
+check_boot_tunnel
+[ "$(tail -n1 "$TEST_ROOT/actions")" = VPN ]
 """
  helper=root/'test.sh';helper.write_text('set -eu\n'+script)
- subprocess.run(['sh',str(helper)],env=dict(os.environ,TEST_ROOT=str(root)),check=True)
+ if os.environ.get('RAYWRT_TEST_EXPORT'):
+  Path(os.environ['RAYWRT_TEST_EXPORT']).write_text(('set -eu\n'+script).replace(str(root/'fallback'),'/tmp/raywrt-health-fixture/fallback').replace(str(root),'/tmp/raywrt-health-fixture'),newline='\n')
+ else:
+  subprocess.run(['sh',str(helper)],env=dict(os.environ,TEST_ROOT=str(root)),check=True)
 print('PASS: boot grace, zero-handshake WAN recovery, handshake reconnection, working tunnel untouched')
