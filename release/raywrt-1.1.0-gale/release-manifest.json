@@ -2,10 +2,10 @@
   "release_name": "RayWRT",
   "raywrt_version": "1.1.0",
   "release_channel": "public",
-  "source_status": "pending_rebuild",
+  "source_status": "frozen",
   "release_status": "public_release",
   "user_acceptance": "pending_for_replacement_image",
-  "image_validation": "pending",
+  "image_validation": "build_artifact_verified",
   "clean_sysupgrade_validation": "pending",
   "public_release_status": "not_yet_validated",
   "openwrt_version": "25.12.5",
@@ -15,7 +15,7 @@
   "supported_device": "google,wifi",
   "image_filename": "raywrt-1.1.0-gale-sysupgrade.bin",
   "image_size_bytes": 9513501,
-  "image_sha256": "56381a9f9decd7cec2eb453940ab4203c65db588895ac68c2f163728ee903dde",
+  "image_sha256": "53907a84b9082ffea30e79b5672764d289ba15dc332ff5c72da42ce0efde073e",
   "release_tag": "v1.1",
-  "replacement_reason": "Live stalled keepalive tunnel recovery fix; firmware rebuild pending"
+  "replacement_reason": "Stalled keepalive WireGuard recovery with fresh-handshake-only restoration"
 }

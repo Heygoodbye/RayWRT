@@ -21,7 +21,7 @@ RayWRT is a dark green LuCI theme, live dashboard, and router tools package, wit
 
 ## 🆕 What’s new in v1.1
 
-Fixed preserved-settings boot recovery when the selected WireGuard peer never handshakes (temporary WAN fallback, not a kill switch), boot/upgrade usage totals and the Internet chart; reduced unused dashboard data requests while keeping fast refresh. Apps now verify RayWRT firmware, fix WPA2/WPA3 Wi-Fi saving, and improve connection stability. [Full English / Persian release notes](RELEASE_NOTES_v1.1.md).
+Fixed preserved-settings boot recovery when the selected WireGuard peer never handshakes or stalls with keepalive enabled (temporary WAN fallback, not a kill switch), boot/upgrade usage totals and the Internet chart; reduced unused dashboard data requests while keeping fast refresh. Apps now verify RayWRT firmware, fix WPA2/WPA3 Wi-Fi saving, and improve connection stability. [Full English / Persian release notes](RELEASE_NOTES_v1.1.md).
 
 ## 🧪 Compatibility and status
 

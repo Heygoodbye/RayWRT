@@ -5,7 +5,9 @@
 Tested only on Google WiFi AC-1304 (Gale), OpenWrt 25.12.5. Firmware package: 1.1.0; companion apps: v1.1.
 
 ### Firmware fixes
-- Replacement firmware fixes settings-preserving boot recovery: a selected full-tunnel peer which never completes a handshake is given a startup grace period, then WAN connectivity is restored. When its handshake succeeds, the VPN default route is restored. This uses normal WAN while that never-connected tunnel is unavailable; it is not a VPN kill switch. Previously working tunnels are not switched to WAN merely because their last handshake is old.
+- Fixed later VPN outages: historical handshakes no longer count as current connectivity. A stalled peer with keepalive enabled and no handshake within five minutes recovers to WAN; the VPN route returns only after a fresh handshake. Idle peers with keepalive disabled are not automatically moved to WAN merely for an old handshake.
+
+- Replacement firmware fixes settings-preserving boot recovery: a selected full-tunnel peer which never completes a handshake is given a startup grace period, then WAN connectivity is restored. When its handshake succeeds, the VPN default route is restored. This uses normal WAN while that never-connected tunnel is unavailable; it is not a VPN kill switch. Idle tunnels with keepalive disabled are not switched to WAN merely because their handshake is old.
 - Iran Direct no longer reports active without a completed handshake. Enable rejects an unconnected tunnel and retains WAN access. Iran-list downloads explicitly use IPv4 and report WAN/DNS/tunnel connectivity failures.
 
 - Fixed Total Used on first boot and after upgrades when accounting files have not yet been created. Preserved historical totals are counted without counting today twice.
@@ -39,7 +41,10 @@ Build/image verification and actual device acceptance are separate. Clean-sysupg
 
 ### تغییرات و رفع باگ‌های فریمور
 
-- مشکل بوت بعد از فلش با حفظ تنظیمات اصلاح شد: اگر تونل انتخاب‌شده بعد از فرصت اولیهٔ اتصال هنوز هیچ handshake نداشته باشد، اینترنت معمولی WAN برقرار می‌شود؛ وقتی تونل وصل شود مسیر پیش‌فرض VPN برمی‌گردد. در این فاصله ترافیک از اینترنت معمولی می‌رود؛ این قابلیت kill switch نیست. تونلی که قبلاً وصل شده فقط به خاطر قدیمی شدن آخرین handshake به WAN منتقل نمی‌شود.
+- مشکل قطع اینترنت چند ساعت بعد از اتصال VPN هم اصلاح شد: handshake قدیمی دیگر نشانهٔ اتصال فعلی نیست. اگر keepalive فعال باشد و پنج دقیقه handshake تازه نرسد، مسیر به WAN برمی‌گردد؛ برگشت به VPN فقط بعد از handshake تازه انجام می‌شود. تونل بیکار با keepalive خاموش صرفاً به خاطر قدیمی بودن handshake به WAN منتقل نمی‌شود.
+
+
+- مشکل بوت بعد از فلش با حفظ تنظیمات اصلاح شد: اگر تونل انتخاب‌شده بعد از فرصت اولیهٔ اتصال هنوز هیچ handshake نداشته باشد، اینترنت معمولی WAN برقرار می‌شود؛ وقتی تونل وصل شود مسیر پیش‌فرض VPN برمی‌گردد. در این فاصله ترافیک از اینترنت معمولی می‌رود؛ این قابلیت kill switch نیست. تونل بیکار با keepalive خاموش فقط به خاطر قدیمی شدن handshake به WAN منتقل نمی‌شود.
 - مسیریابی ایران بدون handshake موفق دیگر فعال نمایش داده نمی‌شود. فعال‌سازی تونلِ وصل‌نشده رد می‌شود و اینترنت WAN حفظ می‌شود. دانلود لیست ایران از IPv4 استفاده می‌کند و خطای اتصال WAN، DNS یا تونل را واضح‌تر نشان می‌دهد.
 
 
@@ -75,7 +80,7 @@ Build, metadata and extracted-image checks passed. Clean-sysupgrade acceptance r
 ### SHA256
 
 ```text
-56381a9f9decd7cec2eb453940ab4203c65db588895ac68c2f163728ee903dde  raywrt-1.1.0-gale-sysupgrade.bin
+53907a84b9082ffea30e79b5672764d289ba15dc332ff5c72da42ce0efde073e  raywrt-1.1.0-gale-sysupgrade.bin
 cb072be9e59d85fc89e484d79820f89ebc41db01315a7ed91afeb410b021ed8e  RayWRT-v1.1-Windows-x64-Setup.exe
 e40ce68c5371321af9b301408f00ab15fb1262b87a0c2f18db0870c4791057bd  RayWRT-v1.1-Android-universal.apk
 ```
